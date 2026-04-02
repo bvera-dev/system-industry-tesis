@@ -1,0 +1,33 @@
+<form method="POST" action="{% url 'login' %}">
+  {% csrf_token %}
+  <div class="form-group mb-3">
+    <div class="input-group input-group-merge input-group-alternative">
+      <div class="input-group-prepend">
+        <span class="input-group-text"><i class="ni ni-email-83"></i></span>
+      </div>
+      <input name="username" class="form-control" placeholder="Usuario o Email" type="text" required>
+    </div>
+  </div>
+  <div class="form-group">
+    <div class="input-group input-group-merge input-group-alternative">
+      <div class="input-group-prepend">
+        <span class="input-group-text"><i class="ni ni-lock-circle-open"></i></span>
+      </div>
+      <input name="password" class="form-control" placeholder="Contraseña" type="password" required>
+    </div>
+  </div>
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      Usuario o contraseña incorrectos.
+    </div>
+  {% endif %}
+  <div class="custom-control custom-control-alternative custom-checkbox">
+    <input class="custom-control-input" id="customCheckLogin" type="checkbox">
+    <label class="custom-control-label" for="customCheckLogin">
+      <span class="text-muted">Recuérdame</span>
+    </label>
+  </div>
+  <div class="text-center">
+    <button type="submit" class="btn btn-primary my-4">Iniciar sesión</button>
+  </div>
+</form>

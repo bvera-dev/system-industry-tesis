@@ -1,0 +1,209 @@
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="canonical" href="https://appseed.us/admin-dashboards/django-dashboard-argon">
+  
+  <title>
+     {% block title %} Admin Panel {% endblock %} 
+  </title>
+
+  <!-- Favicon - loaded as static -->
+  <link rel="icon" href="/static/assets/img/theme/logopro.png" type="image/png">
+  <!-- Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700">
+  <!-- Icons -->
+  <link rel="stylesheet" href="/static/assets/vendor/nucleo/css/nucleo.css" type="text/css">
+  <link rel="stylesheet" href="/static/assets/vendor/@fortawesome/fontawesome-free/css/all.min.css" type="text/css">
+  <!-- Page plugins -->
+  <!-- Argon CSS -->
+  <link rel="stylesheet" href="/static/assets/css/argon.css?v=1.2.0" type="text/css">
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+
+  <!-- Specific CSS goes HERE -->
+  {% block stylesheets %}{% endblock stylesheets %}
+
+</head>
+
+<body class="">
+
+  {% include "includes/sidenav.html" %}
+
+  <div class="main-content" id="panel">
+
+    {% include "includes/navigation.html" %}
+
+    {% block content %}{% endblock content %}
+
+  </div>
+
+  {% include "includes/scripts.html" %}
+
+  <!-- Specific JS goes HERE --> 
+  {% block javascripts %}
+    <script>
+// Versión simplificada y robusta
+$(document).ready(function() {
+    // 1. Configuración básica
+    const config = {
+        csrfToken: '{{ csrf_token }}',
+        urls: {
+            events: '{% url "get_events" %}',
+            registerFace: '{% url "register_face" %}'
+        }
+    };
+
+    // 2. Funciones básicas
+    function showAlert(message, type = 'success') {
+        const icons = {
+            success: 'fa-check-circle',
+            danger: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle'
+        };
+        return `<div class="alert alert-${type}">
+            <i class="fas ${icons[type]} me-2"></i>${message}
+        </div>`;
+    }
+
+    // 3. Timestamp (funcionando)
+    function updateTimestamp() {
+        $('#lastUpdate').text('Última actualización: ' + new Date().toLocaleTimeString());
+    }
+    setInterval(updateTimestamp, 1000);
+    updateTimestamp();
+
+    // 4. Pantalla completa (corregido)
+    $('#fullscreenBtn').click(function() {
+        const container = $('.video-container')[0];
+        if (container.requestFullscreen) {
+            container.requestFullscreen();
+        } else if (container.webkitRequestFullscreen) {
+            container.webkitRequestFullscreen();
+        }
+    });
+
+    // 5. Captura de imagen (versión garantizada)
+    $('#snapshotBtn').click(function() {
+        const img = $('#videoFeed')[0];
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        
+        const link = document.createElement('a');
+        link.download = 'captura-' + new Date().toISOString().slice(0, 10) + '.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+
+    // 6. Carga de eventos (versión robusta)
+    function loadEvents() {
+        $.ajax({
+            url: config.urls.events,
+            method: 'GET',
+            beforeSend: function() {
+                $('#eventsContainer').html('<div class="text-center py-3"><div class="spinner-border"></div></div>');
+            },
+            success: function(data) {
+                if(data && data.length > 0) {
+                    renderEvents(data);
+                } else {
+                    $('#eventsContainer').html(showAlert('No hay eventos recientes', 'warning'));
+                }
+            },
+            error: function() {
+                $('#eventsContainer').html(showAlert('Error al cargar eventos', 'danger'));
+            }
+        });
+    }
+
+    // 7. Renderizado de eventos (básico pero funcional)
+    function renderEvents(events) {
+        let html = '';
+        events.forEach(event => {
+            html += `<div class="event-card alert alert-secondary">
+                <strong>${event.event_type || 'Evento'}</strong>
+                <small class="d-block">${event.timestamp || ''}</small>
+                ${event.image_path ? `<img src="${event.image_path}" class="img-thumbnail mt-2" style="cursor:pointer" onclick="showEventImage('${event.image_path}')">` : ''}
+            </div>`;
+        });
+        $('#eventsContainer').html(html);
+    }
+
+    // 8. Mostrar imagen en modal (global)
+    window.showEventImage = function(src) {
+        $('#modalEventImage').attr('src', src);
+        new bootstrap.Modal('#eventImageModal').show();
+    };
+
+    // 9. Registrar rostro (versión simplificada)
+    $('#registerFaceForm').on('submit', function(e) {
+        e.preventDefault();
+        const file = $('#faceImage')[0].files[0];
+        
+        if(!file) {
+            $('#registrationResult').html(showAlert('Selecciona una imagen', 'danger'));
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('csrfmiddlewaretoken', config.csrfToken);
+
+        $('#registerBtn').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Procesando...');
+
+        $.ajax({
+            url: config.urls.registerFace,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                const result = response.success ? 
+                    showAlert('Rostro registrado', 'success') : 
+                    showAlert(response.error || 'Error desconocido', 'danger');
+                $('#registrationResult').html(result);
+            },
+            error: function() {
+                $('#registrationResult').html(showAlert('Error de conexión', 'danger'));
+            },
+            complete: function() {
+                $('#registerBtn').prop('disabled', false).html('<i class="fas fa-user-plus"></i> Registrar');
+            }
+        });
+    });
+
+    // Inicialización
+    loadEvents();
+    setInterval(loadEvents, 10000); // Actualizar cada 10 segundos
+
+    // Precarga de imagen para pruebas
+    $('#videoFeed').on('load', function() {
+        console.log('Video feed cargado correctamente');
+    }).on('error', function() {
+        console.error('Error al cargar el video feed');
+    });
+});
+</script>
+
+  {% endblock javascripts %}
+
+<script src="/static/assets/js/argon.js?v=1.2.0"></script>
+ <script src="/static/assets/js/demo.min.js"></script>   <!-- Asegúrate que jQuery esté cargado primero -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- Luego Bootstrap JS si es necesario -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+
+	
+
+</body>
+
+</html>

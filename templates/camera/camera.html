@@ -1,0 +1,382 @@
+{% extends 'layouts/base.html' %}
+
+{% block content %}
+<div class="container-fluid mt-5">
+  <div class="row">
+
+    <div class="col-md-8">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <div class="d-flex justify-content-between align-items-center">
+            <h4 class="card-title mb-0 text-white">Vigilancia en Tiempo Real</h4>
+            <div class="camera-status">
+              <span class="status-indicator active"></span>
+              <span>Conectado</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="video-container position-relative">
+            <!-- ✅ fps lento: agrega ?fps=8 -->
+            <img src="{% url 'video_feed' %}?fps=8" class="img-fluid security-feed" id="videoFeed">
+
+
+            <div class="controls-overlay">
+              <button id="snapshotBtn" class="btn btn-sm btn-light me-2" title="Capturar imagen" type="button">
+                <i class="fas fa-camera"></i>
+              </button>
+              <button id="fullscreenBtn" class="btn btn-sm btn-light" title="Pantalla completa" type="button">
+                <i class="fas fa-expand"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3">
+            <h6 class="text-muted mb-2">📌 Registro en Vivo</h6>
+
+            <!-- ✅ URL correcta (guion bajo) -->
+            <div id="liveLog" class="live-log" data-url="{% url 'live_status' %}">
+              Iniciando sistema...
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer">
+          <div class="d-flex justify-content-between align-items-center">
+            <div class="legend">
+              <span class="badge bg-success me-2">Rostro autorizado</span>
+              <span class="badge bg-danger me-2">Rostro desconocido</span>
+              <span class="badge bg-warning">Objeto peligroso</span>
+            </div>
+            <small class="text-muted" id="lastUpdate"></small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EVENTOS + REGISTRO FACIAL -->
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <h4 class="card-title mb-0">Eventos de Seguridad</h4>
+          <button id="refreshEvents" class="btn btn-sm btn-light" type="button">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+
+        <div class="card-body p-0">
+          <div class="events-container" id="eventsContainer">
+            <div class="text-center py-3">
+              <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {% if request.user.is_authenticated %}
+      <div class="card mt-4">
+        <div class="card-header bg-primary text-white">
+          <h4 class="card-title mb-0">Registro Facial</h4>
+        </div>
+
+        <div class="card-body">
+          <form id="registerFaceForm" enctype="multipart/form-data">
+            <div class="mb-3">
+              <label class="form-label">Captura facial</label>
+
+              <div class="face-capture-preview mb-2" id="facePreview">
+                <i class="fas fa-user-circle fa-5x text-secondary"></i>
+              </div>
+
+              <input type="file" class="form-control" id="faceImage" name="image" accept="image/*" capture="user">
+              <div class="form-text">Por favor, mira directamente a la cámara con buena iluminación</div>
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100" id="registerBtn">
+              <i class="fas fa-user-plus me-2"></i>Registrar mi rostro
+            </button>
+          </form>
+
+          <div id="registrationResult" class="mt-3"></div>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<div class="modal fade" id="eventImageModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Evidencia del Evento</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="modalEventImage" src="" class="img-fluid" alt="Evidencia">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+  .video-container { position: relative; background-color: #000; }
+  .security-feed { width: 100%; height: auto; display: block; }
+  .controls-overlay { position: absolute; top: 10px; right: 10px; z-index: 100; }
+
+  .status-indicator { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  .status-indicator.active { background-color: #28a745; }
+  .status-indicator.inactive { background-color: #dc3545; }
+
+  .events-container { max-height: 500px; overflow-y: auto; }
+
+  .event-card { border-radius: 0.5rem; margin-bottom: 1rem; padding: 1rem; transition: all 0.3s ease; }
+  .event-card:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+  .event-image-thumb { max-height: 120px; cursor: pointer; transition: transform 0.3s; }
+  .event-image-thumb:hover { transform: scale(1.02); }
+
+  .face-capture-preview {
+    width: 100%;
+    height: 200px;
+    background-color: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .face-capture-preview img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  .live-log{
+    background:#111;
+    color:#0f0;
+    font-family: monospace;
+    padding:10px;
+    height:140px;
+    overflow-y:auto;
+    border-radius:8px;
+    font-size:13px;
+    border: 1px solid rgba(255,255,255,.08);
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+$(document).ready(function() {
+
+  const APP_CONFIG = {
+  urls: {
+    events: '{% url "get_security_events" %}',
+    registerFace: '{% url "register_face" %}',
+    videoFeed: '{% url "video_feed" %}'
+  }
+};
+
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function updateTimestamp() {
+    const now = new Date();
+    $('#lastUpdate').text('Última actualización: ' + now.toLocaleTimeString());
+  }
+  setInterval(updateTimestamp, 1000);
+  updateTimestamp();
+
+  // ----------- EVENTS -----------
+  $('#refreshEvents').on('click', loadSecurityEvents);
+
+  window.showEventImage = function(imageUrl) {
+    $('#modalEventImage').attr('src', imageUrl);
+    const modal = new bootstrap.Modal(document.getElementById('eventImageModal'));
+    modal.show();
+  };
+
+  function loadSecurityEvents() {
+    $.ajax({
+      url: APP_CONFIG.urls.events,
+      method: 'GET',
+      success: function(data) { renderEvents(data); },
+      error: function(xhr) {
+        console.log("❌ get_security_events error:", xhr.status, xhr.responseText);
+        $('#eventsContainer').html(`<div class="alert alert-danger m-3">Error al cargar eventos.</div>`);
+      }
+    });
+  }
+
+  function renderEvents(data) {
+    let html = '';
+    const events = data.events || [];
+
+    if (events.length) {
+      events.forEach(event => {
+        let alertClass = 'secondary', icon = 'fa-info-circle', priority = '---';
+
+        switch(event.event_type) {
+          case 'face_recognized': alertClass='success'; icon='fa-user-check'; priority='Baja'; break;
+          case 'face_unknown': alertClass='warning'; icon='fa-user-times'; priority='Media'; break;
+          case 'dangerous_object':
+          case 'unauthorized_access': alertClass='danger'; icon='fa-exclamation-triangle'; priority='Alta'; break;
+        }
+
+        const title = event.event_type_display || event.event_type || 'Evento';
+        const details = event.details || 'Sin detalles adicionales';
+
+        html += `
+          <div class="event-card alert alert-${alertClass}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div class="d-flex align-items-center">
+                  <i class="fas ${icon} me-2"></i>
+                  <strong>${escapeHtml(title)}</strong>
+                  <span class="badge bg-${alertClass} ms-2">${priority}</span>
+                </div>
+                <small class="text-muted d-block mt-1">${escapeHtml(event.timestamp || '')}</small>
+              </div>
+              ${event.resolved ? '<span class="badge bg-success">Resuelto</span>' : ''}
+            </div>
+
+            <p class="mt-2 mb-1">${escapeHtml(details)}</p>
+
+            ${event.image_url ? `
+              <div class="mt-2 text-center">
+                <img src="${event.image_url}" class="event-image-thumb img-thumbnail"
+                     alt="Evidencia"
+                     onclick="showEventImage('${event.image_url}')">
+              </div>` : ''
+            }
+          </div>
+        `;
+      });
+    } else {
+      html = '<div class="text-center py-3 text-muted">No hay eventos recientes</div>';
+    }
+
+    $('#eventsContainer').html(html);
+  }
+
+  // ----------- REGISTER FACE -----------
+  $('#faceImage').on('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      $('#facePreview').html(`<img src="${e.target.result}" class="img-fluid" alt="Preview">`);
+    }
+    reader.readAsDataURL(file);
+  });
+
+  $('#registerFaceForm').on('submit', function(e) {
+    e.preventDefault();
+
+    const fileInput = $('#faceImage')[0];
+    if (!fileInput.files.length) {
+      $('#registrationResult').html(`<div class="alert alert-danger">Selecciona una imagen</div>`);
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', fileInput.files[0]);
+
+    $('#registerBtn').prop('disabled', true).text('Procesando...');
+    $('#registrationResult').html('');
+
+    $.ajax({
+      url: APP_CONFIG.urls.registerFace,
+      type: 'POST',
+      data: formData,
+      processData: false,
+      contentType: false,
+      success: function(data) {
+        if (data.success === true) {
+          $('#registrationResult').html(`<div class="alert alert-success">${escapeHtml(data.message || 'OK')}</div>`);
+          $('#facePreview').html('<i class="fas fa-check-circle fa-5x text-success"></i>');
+        } else {
+          $('#registrationResult').html(`<div class="alert alert-danger">${escapeHtml(data.message || 'Error')}</div>`);
+        }
+      },
+      error: function(xhr) {
+        console.log("❌ register_face error:", xhr.status, xhr.responseText);
+        $('#registrationResult').html('<div class="alert alert-danger">Error en servidor</div>');
+      },
+      complete: function() {
+        $('#registerBtn').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Registrar mi rostro');
+      }
+    });
+  });
+
+  // ----------- LIVE LOG (incremental) -----------
+  let lastLogId = 0;
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
+}
+
+function appendLiveLog(items) {
+  const box = document.getElementById("liveLog");
+  if (!box || !items || !items.length) return;
+
+  items.forEach(it => {
+    const line = `[${it.ts}] ${it.msg}`;
+    box.innerHTML += escapeHtml(line) + "<br>";
+  });
+
+  box.scrollTop = box.scrollHeight;
+
+  const parts = box.innerHTML.split("<br>");
+  if (parts.length > 180) {
+    box.innerHTML = parts.slice(parts.length - 180).join("<br>");
+  }
+}
+
+function loadLiveLog() {
+  const box = document.getElementById("liveLog");
+  if (!box) return;
+
+  const url = box.dataset.url;
+  if (!url) return;
+
+  $.ajax({
+    url: url,
+    method: "GET",
+    data: { after: lastLogId },
+    success: function(data) {
+      const items = data.lines || [];
+      appendLiveLog(items);
+
+      if (typeof data.last_id === "number") lastLogId = data.last_id;
+      else if (items.length) lastLogId = items[items.length - 1].id;
+    },
+    error: function(xhr) {
+      console.log("❌ live_status error:", xhr.status, xhr.responseText);
+    }
+  });
+}
+
+loadLiveLog();
+setInterval(loadLiveLog, 800);
+});
+</script>
+{% endblock %}

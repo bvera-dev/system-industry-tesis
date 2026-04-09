@@ -1,80 +1,82 @@
 {% extends 'layouts/base-fullscreen.html' %}
+{% load static %}
 
-{% block title %} Login {% endblock title %}
+{% block title %}Iniciar sesión{% endblock title %}
 
-<!-- Specific CSS goes HERE -->
-{% block stylesheets %}{% endblock stylesheets %}
+{% block stylesheets %}
+<link rel="stylesheet" href="{% static 'assets/css/login.css' %}">
+{% endblock stylesheets %}
 
 {% block content %}
+<div class="container py-5 min-vh-100 d-flex align-items-center justify-content-center">
+  <div class="row justify-content-center w-100">
+    <div class="col-lg-5 col-md-7">
+      <div class="card shadow border-0 login-card">
+        <div class="card-header bg-transparent pb-4 pt-4 text-center border-0">
+          <h2 class="mb-1">Iniciar sesión</h2>
+          <p class="text-muted mb-0">
+            Ingresa tus credenciales para acceder al sistema
+          </p>
+        </div>
 
-    <!-- Page content -->
-    <div class="container mt--8 pb-5">
-      <div class="row justify-content-center">
-        <div class="col-lg-5 col-md-7">
-          <div class="card bg-secondary shadow border-0">
-            <div class="card-header bg-transparent pb-5">
-              <div class="text-muted text-center mt-2 mb-3">
-                Sign IN
+        <div class="card-body px-lg-5 py-lg-4">
+          <div class="text-center text-muted mb-4">
+            {% if msg %}
+              <p class="mb-0">{{ msg }}</p>
+            {% endif %}
+          </div>
+
+          <form method="POST">
+            {% csrf_token %}
+
+            <div class="form-group mb-3">
+              <label class="form-label">Usuario</label>
+              <div class="input-group input-group-alternative">
+                <div class="input-group-prepend">
+                  <span class="input-group-text"><i class="ni ni-single-02"></i></span>
+                </div>
+                {{ form.username }}
               </div>
             </div>
-            <div class="card-body px-lg-5 py-lg-5">
-              <div class="text-center text-muted mb-4">
 
-                {% if msg %}
-                  <p>{{ msg }}</p>
-                {% else %}
-                  <p>
-                    Add your credentials
-                  </p>
-                {% endif %}  
-
+            <div class="form-group">
+              <label class="form-label">Contraseña</label>
+              <div class="input-group input-group-alternative">
+                <div class="input-group-prepend">
+                  <span class="input-group-text"><i class="ni ni-lock-circle-open"></i></span>
+                </div>
+                {{ form.password }}
               </div>
-
-              <form method="POST">
-
-                {% csrf_token %}
-
-                <div class="form-group mb-3">
-                  <div class="input-group input-group-alternative">
-                    <div class="input-group-prepend">
-                      <span class="input-group-text"><i class="ni ni-hat-3"></i></span>
-                    </div>
-                    {{ form.username }}
-                  </div>
-                </div>
-                <div class="form-group">
-                  <div class="input-group input-group-alternative">
-                    <div class="input-group-prepend">
-                      <span class="input-group-text"><i class="ni ni-lock-circle-open"></i></span>
-                    </div>
-                    {{ form.password }}
-                  </div>
-                </div>
-                <div class="custom-control custom-control-alternative custom-checkbox">
-                  <input class="custom-control-input" id=" customCheckLogin" type="checkbox">
-                  <label class="custom-control-label" for=" customCheckLogin">
-                    <span class="text-muted">Remember me</span>
-                  </label>
-                </div>
-                <div class="text-center">
-                  <button type="submit" class="btn btn-primary my-4">Sign in</button>
-                </div>
-              </form>
             </div>
-          </div>
-          <div class="row mt-3">
-            <div class="col-6">
-              <a href="{% url 'register' %}" class="text-light"><small>Register</small></a>
+
+            <div class="custom-control custom-control-alternative custom-checkbox mt-3">
+              <input class="custom-control-input" id="customCheckLogin" type="checkbox">
+              <label class="custom-control-label" for="customCheckLogin">
+                <span class="text-muted">Recordarme</span>
+              </label>
             </div>
-            <div class="col-6 text-right">
-              <a href="https://appseed.us/support" class="text-light"><small>Get Support</small></a>
+
+            <div class="text-center">
+              <button type="submit" class="btn btn-primary my-4 w-100">
+                Entrar
+              </button>
             </div>
-          </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="row mt-3">
+        <div class="col-6">
+          <a href="{% url 'register' %}" class="text-light">
+            <small>Crear cuenta</small>
+          </a>
         </div>
       </div>
     </div>
-
+  </div>
+</div>
 {% endblock content %}
 
-<!-- Specific JS goes HERE --> 
-{% block javascripts %}{% endblock javascripts %}
+{% block javascripts %}
+<script src="{% static 'assets/js/login.js' %}"></script>
+{% endblock javascripts %}

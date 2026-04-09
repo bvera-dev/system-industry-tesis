@@ -1,118 +1,178 @@
 {% extends 'layouts/base-fullscreen.html' %}
+{% load static %}
 
-{% block title %} Register {% endblock title %}
+{% block title %}Crear cuenta{% endblock title %}
 
-<!-- Specific CSS goes HERE -->
-{% block stylesheets %}{% endblock stylesheets %}
+{% block stylesheets %}
+<link rel="stylesheet" href="{% static 'assets/css/register.css' %}">
+{% endblock stylesheets %}
 
 {% block content %}
+<div class="register-page">
+  <div class="container py-5">
+    <div class="row justify-content-center align-items-center min-vh-100">
+      <div class="col-xl-10 col-lg-11">
+        <div class="register-wrapper">
 
-    <!-- Page content -->
-    <div class="container mt--8 pb-5">
-      <!-- Table -->
-      <div class="row justify-content-center">
-        <div class="col-lg-6 col-md-8">
-        
-          <div class="card bg-secondary shadow border-0">
-            <div class="card-header bg-transparent pb-5">
-              <div class="text-muted text-center mt-2 mb-4">
-                Sign UP
-              </div>
+          <!-- Panel izquierdo -->
+          <div class="register-info-panel">
+            <div class="brand-badge">
+              <i class="ni ni-atom"></i>
+              <span>Security System</span>
             </div>
-            <div class="card-body px-lg-5 py-lg-5">
-              <div class="text-center text-muted mb-4">
 
-                {% if msg %}
-                  <small>{{ msg | safe }}</small>
-                {% else %}
-                  Add your credentials
-                {% endif %}  
-              
+            <h1 class="register-title">Crea tu cuenta</h1>
+            <p class="register-subtitle">
+              Regístrate para acceder al sistema de monitoreo, alertas y gestión de seguridad industrial.
+            </p>
+
+            <ul class="register-benefits">
+              <li>
+                <i class="ni ni-check-bold"></i>
+                <span>Acceso rápido y seguro a la plataforma</span>
+              </li>
+              <li>
+                <i class="ni ni-check-bold"></i>
+                <span>Gestión centralizada de usuarios y monitoreo</span>
+              </li>
+              <li>
+                <i class="ni ni-check-bold"></i>
+                <span>Mayor control sobre alertas y eventos del sistema</span>
+              </li>
+            </ul>
+          </div>
+
+          <!-- Formulario -->
+          <div class="register-form-panel">
+            <div class="register-card">
+              <div class="text-center mb-4">
+                <h2 class="form-title">Registro de usuario</h2>
+                <p class="form-subtitle">
+                  Completa la información solicitada para crear tu cuenta.
+                </p>
               </div>
+
+              {% if msg %}
+                <div class="custom-alert {% if success %}alert-success-custom{% else %}alert-error-custom{% endif %}">
+                  {{ msg | safe }}
+                </div>
+              {% endif %}
 
               {% if not success %}
+              <form method="POST" id="registerForm" novalidate>
+                {% csrf_token %}
 
-                <form method="POST">
-
-                  {% csrf_token %}
-            
-                  <div class="form-group">
-                    <div class="input-group input-group-alternative mb-3">
-                      <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="ni ni-hat-3"></i></span>
-                      </div>
-                      {{ form.username }}
-                    </div>
+                <div class="form-group-custom">
+                  <label for="{{ form.username.id_for_label }}" class="form-label-custom">
+                    Nombre de usuario
+                  </label>
+                  <div class="input-wrapper">
+                    <span class="input-icon"><i class="ni ni-single-02"></i></span>
+                    {{ form.username }}
                   </div>
-                  <span class="text-error">{{ form.username.errors }}</span>
+                  <small class="form-help">
+                    Usa un nombre fácil de recordar. Evita espacios y caracteres especiales innecesarios.
+                  </small>
+                  {% if form.username.errors %}
+                    <div class="field-error">{{ form.username.errors }}</div>
+                  {% endif %}
+                </div>
 
-                  <div class="form-group">
-                    <div class="input-group input-group-alternative mb-3">
-                      <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="ni ni-email-83"></i></span>
-                      </div>
-                      {{ form.email }}
-                    </div>
+                <div class="form-group-custom">
+                  <label for="{{ form.email.id_for_label }}" class="form-label-custom">
+                    Correo electrónico
+                  </label>
+                  <div class="input-wrapper">
+                    <span class="input-icon"><i class="ni ni-email-83"></i></span>
+                    {{ form.email }}
                   </div>
-                  <span class="text-error">{{ form.email.errors }}</span>
+                  <small class="form-help">
+                    Ingresa un correo válido, ya que podrá usarse para notificaciones y recuperación de acceso.
+                  </small>
+                  {% if form.email.errors %}
+                    <div class="field-error">{{ form.email.errors }}</div>
+                  {% endif %}
+                </div>
 
-                  <div class="form-group">
-                    <div class="input-group input-group-alternative">
-                      <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="ni ni-lock-circle-open"></i></span>
-                      </div>
-                      {{ form.password1 }}
-                    </div>
+                <div class="form-group-custom">
+                  <label for="{{ form.password1.id_for_label }}" class="form-label-custom">
+                    Contraseña
+                  </label>
+                  <div class="input-wrapper password-wrapper">
+                    <span class="input-icon"><i class="ni ni-lock-circle-open"></i></span>
+                    {{ form.password1 }}
+                    <button type="button" class="toggle-password" data-target="{{ form.password1.id_for_label }}">
+                      <i class="ni ni-eye"></i>
+                    </button>
                   </div>
-                  <span class="text-error">{{ form.password1.errors }}</span>
+                  <small class="form-help">
+                    Debe tener al menos 8 caracteres, incluyendo letras y números.
+                  </small>
 
-                  <div class="form-group">
-                    <div class="input-group input-group-alternative">
-                      <div class="input-group-prepend">
-                        <span class="input-group-text"><i class="ni ni-lock-circle-open"></i></span>
-                      </div>
-                      {{ form.password2 }}
-                    </div>
+                  <div class="password-rules" id="passwordRules">
+                    <div class="rule-item" id="ruleLength">• Mínimo 8 caracteres</div>
+                    <div class="rule-item" id="ruleLetter">• Al menos una letra</div>
+                    <div class="rule-item" id="ruleNumber">• Al menos un número</div>
                   </div>
-                  <span class="text-error">{{ form.password2.errors }}</span>
 
-                  <div class="row my-4">
-                    <div class="col-12">
-                      <div class="custom-control custom-control-alternative custom-checkbox">
-                        <input class="custom-control-input" id="customCheckRegister" type="checkbox">
-                        <label class="custom-control-label" for="customCheckRegister">
-                          <span class="text-muted">I agree with the <a href="#!">Privacy Policy</a></span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="text-center">
-                    <button type="submit" class="btn btn-primary mt-4">Create account</button>
-                  </div>
-                </form>
+                  {% if form.password1.errors %}
+                    <div class="field-error">{{ form.password1.errors }}</div>
+                  {% endif %}
+                </div>
 
-              {% endif %}  
-  
+                <div class="form-group-custom">
+                  <label for="{{ form.password2.id_for_label }}" class="form-label-custom">
+                    Confirmar contraseña
+                  </label>
+                  <div class="input-wrapper password-wrapper">
+                    <span class="input-icon"><i class="ni ni-lock-circle-open"></i></span>
+                    {{ form.password2 }}
+                    <button type="button" class="toggle-password" data-target="{{ form.password2.id_for_label }}">
+                      <i class="ni ni-eye"></i>
+                    </button>
+                  </div>
+                  <small class="form-help">
+                    Repite exactamente la misma contraseña para confirmar.
+                  </small>
+                  {% if form.password2.errors %}
+                    <div class="field-error">{{ form.password2.errors }}</div>
+                  {% endif %}
+                </div>
+
+                <div class="terms-box">
+                  <input class="custom-check" id="customCheckRegister" type="checkbox">
+                  <label for="customCheckRegister">
+                    Acepto la <a href="#!">Política de privacidad</a> y los términos de uso.
+                  </label>
+                </div>
+
+                <button type="submit" class="btn-register" id="submitBtn" disabled>
+                  Crear cuenta
+                </button>
+
+                <div class="bottom-links">
+                  <a href="{% url 'login' %}">Ya tengo una cuenta</a>
+                  <a href="#!">Necesito ayuda</a>
+                </div>
+              </form>
+              {% else %}
+                <div class="success-box">
+                  <i class="ni ni-check-bold"></i>
+                  <h3>Cuenta creada correctamente</h3>
+                  <p>Ahora puedes iniciar sesión con tus credenciales.</p>
+                  <a href="{% url 'login' %}" class="btn-login-redirect">Ir al login</a>
+                </div>
+              {% endif %}
             </div>
           </div>
 
         </div>
       </div>
-
-      <div class="row mt-3">
-        <div class="col-3"></div>
-        <div class="col-3">
-          <a href="{% url 'login' %}" class="text-light"><small>Login</small></a>
-        </div>
-        <div class="col-3 text-right">
-          <a href="https://appseed.us/support" class="text-light"><small>Get Support</small></a>
-        </div>
-      </div>
-
     </div>
   </div>
-
+</div>
 {% endblock content %}
 
-<!-- Specific JS goes HERE --> 
-{% block javascripts %}{% endblock javascripts %}
+{% block javascripts %}
+<script src="{% static 'assets/js/register.js' %}"></script>
+{% endblock javascripts %}

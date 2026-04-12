@@ -1,0 +1,40 @@
+.informe-card {
+  border-radius: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.informe-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+}
+
+.descripcion-box {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 12px;
+  min-height: 90px;
+  color: #344767;
+  font-size: 0.95rem;
+}
+
+.mini-evidencia {
+  background: #f8f9fa;
+  border-radius: 14px;
+  padding: 12px;
+  min-height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.evidencia-preview {
+  max-height: 160px;
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.sin-evidencia {
+  color: #8392ab;
+  font-size: 0.95rem;
+  font-style: italic;
+}

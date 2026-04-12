@@ -8,11 +8,11 @@ class AuthorizedPerson(models.Model):
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    encoding = models.TextField(null=True, blank=True)  # evargas
-
+    encoding = models.TextField(null=True, blank=True)
 
     def __str__(self):
         return self.user.username
+
 
 class SecurityEvent(models.Model):
     EVENT_TYPES = (
@@ -21,7 +21,7 @@ class SecurityEvent(models.Model):
         ('dangerous_object', 'Objeto peligroso detectado'),
         ('unauthorized_access', 'Acceso no autorizado'),
     )
-    
+
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
     details = models.TextField()
     image_path = models.CharField(max_length=255, blank=True, null=True)
@@ -39,5 +39,11 @@ class SecurityEvent(models.Model):
 
     def get_image_url(self):
         if self.image_path:
-            return settings.MEDIA_URL + self.image_path
+            return f"{settings.MEDIA_URL}{self.image_path}"
         return None
+
+    def get_person_name(self):
+        if self.related_user:
+            full_name = self.related_user.get_full_name().strip()
+            return full_name if full_name else self.related_user.username
+        return "Desconocido"

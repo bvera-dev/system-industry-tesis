@@ -2,56 +2,272 @@
 
 {% block title %} Dashboard {% endblock title %}
 
-<!-- Specific CSS goes HERE -->
-{% block stylesheets %}{% endblock stylesheets %}
+{% block stylesheets %}
+<style>
+  .welcome-card {
+    border-radius: 30px;
+    min-height: 280px;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.5s ease;
+    color: #fff;
+  }
+
+  .welcome-card.morning {
+    background: linear-gradient(135deg, #f6e3b4 0%, #f2d28b 100%);
+    color: #9b5b1a;
+  }
+
+  .welcome-card.afternoon {
+    background: linear-gradient(135deg, #5e72e4 0%, #825ee4 100%);
+    color: #ffffff;
+  }
+
+  .welcome-card.night {
+    background: linear-gradient(135deg, #1f2a56 0%, #3b2c85 100%);
+    color: #ffffff;
+  }
+
+  .welcome-greeting {
+    display: inline-block;
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    opacity: 0.9;
+  }
+
+  .welcome-title {
+    font-size: 3rem;
+    font-weight: 700;
+    line-height: 1.1;
+    transition: color 0.4s ease;
+  }
+
+  .welcome-message {
+    font-size: 1.15rem;
+    max-width: 650px;
+    opacity: 0.95;
+  }
+
+  .welcome-info {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 20px;
+  }
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .info-item i {
+    font-size: 1.2rem;
+  }
+
+  .participants-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    opacity: 0.85;
+  }
+
+  .participants-name {
+    font-size: 1rem;
+    font-weight: 500;
+  }
+
+  .welcome-logo-circle {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto;
+    background: rgba(255,255,255,0.18);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    position: relative;
+    z-index: 2;
+  }
+
+  .welcome-logo {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+  }
+
+  .shape-cloud {
+    position: absolute;
+    width: 50px;
+    height: 24px;
+    border-radius: 30px;
+    background: rgba(255,255,255,0.25);
+    z-index: 1;
+  }
+
+  .cloud-1 {
+    top: 20px;
+    right: 120px;
+  }
+
+  .cloud-2 {
+    top: 40px;
+    right: 40px;
+  }
+
+  .shape-circle {
+    position: absolute;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+    bottom: -60px;
+    right: -30px;
+    z-index: 0;
+  }
+
+  .morning .shape-cloud,
+  .morning .shape-circle {
+    background: rgba(255, 191, 73, 0.25);
+  }
+
+  .morning .welcome-logo-circle {
+    background: rgba(255,255,255,0.28);
+  }
+
+  @media (max-width: 768px) {
+    .welcome-title {
+      font-size: 2.2rem;
+    }
+
+    .welcome-message {
+      font-size: 1rem;
+    }
+
+    .welcome-logo-circle {
+      width: 120px;
+      height: 120px;
+      margin-top: 25px;
+    }
+
+    .welcome-logo {
+      width: 90px;
+      height: 90px;
+    }
+  }
+  /* Color del nombre según la hora */
+.morning .welcome-title {
+  color: #a85a1f;
+}
+
+.afternoon .welcome-title {
+  color: #ffffff;
+}
+
+.night .welcome-title {
+  color: #f7d76d;
+}
+</style>
+{% endblock stylesheets %}
 
 {% block content %}
 
-<!-- Tarjeta de Bienvenida Grande -->
 <div class="col-12 mb-5 mt-5">
-  <div class="card shadow-lg border-0" style="background: linear-gradient(90deg, #5e72e4 0%, #825ee4 100%); color: white; min-height: 280px;">
+  <div id="welcome-card" class="welcome-card shadow-lg border-0">
     <div class="card-body p-5">
       <div class="row align-items-center justify-content-between">
-        <!-- Texto -->
-        <div class="col-lg-9 col-md-8">
-          <h1 class="display-3 font-weight-bold mb-3 text-white">¡Bienvenido!</h1>
-          <p class="lead">
-            Este sistema ha sido diseñado para monitorear zonas industriales, generar informes de seguridad y ayudarte a mantener un entorno más seguro y controlado.
-          </p>
-          <p class="mb-0 text-white-50">
-            Explora los módulos disponibles desde el menú lateral y empieza a gestionar con eficiencia.
-          </p>
-          <p class="mb-0 text-white-50">
-            Participantes:
-          </p>
-          <p class="mb-0 text-white-50">
-            </br>
-            Vargas Peñafiel Eva Melany
-          </p>
-        </div>
 
-        <!-- Icono -->
-        <div class="col-lg-3 col-md-4 text-center">
-          <div class="icon icon-shape bg-white text-primary rounded-circle shadow"
-          style="width: 100px; height: 100px; display: inline-flex; align-items: center; justify-content: center;">
-          <img src="/static/assets/img/theme/logopro.png" alt="" style="width: 200px; height: 120px; object-fit: contain;">
+        <div class="col-lg-8 col-md-7">
+          <span id="greeting-text" class="welcome-greeting">Hola,</span>
+
+          <h1 class="welcome-title mb-3">
+            {{ request.user.get_full_name|default:request.user.username }}
+          </h1>
+
+          <p id="welcome-message" class="welcome-message mb-3">
+            Bienvenido al sistema de monitoreo industrial.
+          </p>
+
+          <div class="welcome-info">
+            <div class="info-item">
+              <i class="ni ni-watch-time"></i>
+              <span id="current-time">00:00:00</span>
+            </div>
+
+            <div class="info-item">
+              <i class="ni ni-calendar-grid-58"></i>
+              <span id="current-date">00/00/0000</span>
+            </div>
           </div>
+
+          
         </div>
 
-        
+        <div class="col-lg-4 col-md-5 text-center position-relative">
+          <div class="welcome-logo-circle">
+            <img src="/static/assets/img/theme/logopro.png"
+                 alt="Logo"
+                 class="welcome-logo">
+          </div>
+
+          <span class="shape-cloud cloud-1"></span>
+          <span class="shape-cloud cloud-2"></span>
+          <span class="shape-circle"></span>
+        </div>
+
       </div>
     </div>
   </div>
 </div>
 
-
 {% endblock content %}
 
-<!-- Specific JS goes HERE --> 
 {% block javascripts %}
-
   <script src="/static/assets/vendor/chart.js/dist/Chart.min.js"></script>
   <script src="/static/assets/vendor/chart.js/dist/Chart.extension.js"></script>
-<!-- Luego tu archivo de gráficos -->
   <script src="/static/assets/js/components/charts/charts.js"></script>
+
+  <script>
+    function updateWelcomeCard() {
+      const now = new Date();
+      const hour = now.getHours();
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+
+      const currentTime = document.getElementById("current-time");
+      const currentDate = document.getElementById("current-date");
+      const greetingText = document.getElementById("greeting-text");
+      const welcomeMessage = document.getElementById("welcome-message");
+      const welcomeCard = document.getElementById("welcome-card");
+
+      currentTime.textContent = `${hour}:${minutes}:${seconds}`;
+      currentDate.textContent = `${day}/${month}/${year}`;
+
+      welcomeCard.classList.remove("morning", "afternoon", "night");
+
+      if (hour >= 5 && hour < 12) {
+        greetingText.textContent = "Buenos días,";
+        welcomeMessage.textContent = "Te damos la bienvenida al sistema. Es un buen momento para iniciar el monitoreo de seguridad.";
+        welcomeCard.classList.add("morning");
+      } else if (hour >= 12 && hour < 19) {
+        greetingText.textContent = "Buenas tardes,";
+        welcomeMessage.textContent = "Continúa supervisando cámaras, alertas y eventos en tiempo real desde tu panel principal.";
+        welcomeCard.classList.add("afternoon");
+      } else {
+        greetingText.textContent = "Buenas noches,";
+        welcomeMessage.textContent = "El sistema sigue atento al monitoreo industrial y al registro de eventos importantes.";
+        welcomeCard.classList.add("night");
+      }
+    }
+
+    updateWelcomeCard();
+    setInterval(updateWelcomeCard, 1000);
+  </script>
 {% endblock javascripts %}

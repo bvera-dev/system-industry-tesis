@@ -2,19 +2,20 @@ from django.conf import settings
 from datetime import datetime
 from core_apps.camera.models import SecurityEvent
 from core_apps.informes.models import Informe
-
 import os
 
-# OpenCV y NumPy son dependencias pesadas. Para que el proyecto pueda
-# arrancar aunque no estén instaladas (por ejemplo, si solo quieres usar
-# el módulo de informes), hacemos la importación de forma segura.
+# OpenCV como import seguro
 try:
     import cv2  # type: ignore
-except Exception:  # pragma: no cover
+except Exception:
     cv2 = None
 
+
 def save_event_image(frame, event_type):
-    """Guarda la imagen del evento y devuelve la ruta relativa"""
+    """
+    Guarda la imagen del evento y devuelve la ruta relativa.
+    Ejemplo de retorno: security_events/unauthorized_access_20260408_154500_123456.jpg
+    """
     try:
         if cv2 is None or frame is None:
             return None
@@ -22,30 +23,34 @@ def save_event_image(frame, event_type):
         # Crear directorio si no existe
         events_dir = os.path.join(settings.MEDIA_ROOT, 'security_events')
         os.makedirs(events_dir, exist_ok=True)
-        
-        # Generar nombre de archivo único
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+
+        # Nombre único con microsegundos para evitar duplicados
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_%f')
         filename = f"{event_type}_{timestamp}.jpg"
-        filepath = os.path.join('security_events', filename)
+
+        filepath = os.path.join('security_events', filename).replace("\\", "/")
         full_path = os.path.join(settings.MEDIA_ROOT, filepath)
-        
+
         # Guardar imagen
-        cv2.imwrite(full_path, frame)
-        
-        return filepath
+        saved = cv2.imwrite(full_path, frame)
+
+        if saved:
+            return filepath
+
+        return None
+
     except Exception as e:
         print(f"Error al guardar imagen de evento: {e}")
         return None
-        
 
-def create_security_event(event_type, details, frame=None, user=None):
+
+def create_security_event(event_type, details, frame=None, user=None, camara="Cámara 1", epp_correcto=None):
     """
-    Crea un evento de seguridad y registra informe correspondiente
+    Crea un evento de seguridad y su informe correspondiente.
     """
+
     try:
-        from core_apps.informes.models import Informe
-
-        # 1. Guardar imagen del evento (opcional)
+        # 1. Guardar imagen si existe frame
         image_path = save_event_image(frame, event_type)
 
         # 2. Crear evento de seguridad
@@ -56,16 +61,20 @@ def create_security_event(event_type, details, frame=None, user=None):
             related_user=user
         )
 
-        # 3. Lógica del informe
-        persona = user.username if user else "Desconocido"
-        epp_correcto = False
+        # 3. Nombre de persona
+        if user:
+            persona = user.get_full_name().strip() or user.username
+        else:
+            persona = "Desconocido"
 
-        if event_type in ['face_recognized']:
-            epp_correcto = True  # Puedes refinarlo según detección real de EPP
+        # 4. Determinar EPP correcto
+        # Si no lo mandan, por defecto queda en False
+        if epp_correcto is None:
+            epp_correcto = False
 
-        # Siempre guardar en informe
+        # 5. Crear informe
         Informe.objects.create(
-            camara="Cámara 1",
+            camara=camara,
             persona_detectada=persona,
             epp_correcto=epp_correcto,
             descripcion=f"{event.get_event_type_display()}: {details}"

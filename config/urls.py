@@ -4,7 +4,7 @@ from core_apps.common.views import IndexView, DashboardView, register_view
 from django.contrib.auth import views as auth_views
 
 urlpatterns = [
-    path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
+    path('login/', auth_views.LoginView.as_view(template_name='accounts/login2.html'), name='login'),
     path('', IndexView.as_view(), name='home'),  # Página protegida con LoginRequiredMixin
     path('register/', register_view, name='register'),
     path('dashboard/', DashboardView.as_view(), name='dashboard'),

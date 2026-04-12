@@ -1,54 +1,62 @@
-<nav class="sidenav navbar navbar-vertical  fixed-left  navbar-expand-xs navbar-light bg-white" id="sidenav-main">
-  <div class="scrollbar-inner">
-    <!-- Brand -->
-    <div class="sidenav-header  align-items-center">
-      <a class="navbar-brand" href="/">
-        <img src="/static/assets/img/theme/logopro.png" class="navbar-brand-img" style="width: 100px; height:auto;" >
+{% block stylesheets %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="/static/assets/css/components/sidenav.css">
+{% endblock stylesheets %}
+
+<nav class="custom-sidenav" id="sidenav-main">
+  <div class="custom-sidenav__inner">
+
+    <div class="custom-sidenav__top">
+      <a href="/" class="custom-sidenav__brand" title="Home">
+        <i class="bi bi-house-door"></i>
       </a>
     </div>
-    <div class="navbar-inner">
-      <!-- Collapse -->
-      <div class="collapse navbar-collapse" id="sidenav-collapse-main">
-        <!-- Nav items -->
-        <ul class="navbar-nav">
 
-          <li class="nav-item">
-            <a class="nav-link {% if 'index' in segment %} active {% endif %}"href="/">
-              <i class="ni ni-tv-2 text-primary"></i>
-              <span class="nav-link-text">Home</span>
-            </a>
-          </li>
+    <ul class="custom-sidenav__menu">
 
-          <li class="nav-item">
-            <a class="nav-link {% if 'index' in segment %} active {% endif %}" href="{% url 'dashboard' %}">
-              <i class="ni ni-chart-bar-32 text-primary"></i>
-              <span class="nav-link-text">Dashboard</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if 'icons' in segment %} active {% endif %}" href="{% url 'camera' %}">
-              <i class="ni ni-planet text-primary"></i>
-              <span class="nav-link-text">Cámara de Seguridad
-              </span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if 'map' in segment %} active {% endif %}" href="{% url 'alerta' %}">
-              <i class="ni ni-pin-3 text-primary"></i>
-              <span class="nav-link-text">Alertas</span>
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link {% if 'profile' in segment %} active {% endif %}" href="{% url 'lista_informes' %}">
-              <i class="ni ni-single-02 text-primary"></i>
-              <span class="nav-link-text">Informe</span>
-            </a>
-          </li>
-          
-       
+      <li class="custom-sidenav__item">
+        <a class="custom-sidenav__link {% if segment == 'index' %}active{% endif %}" href="/">
+          <i class="bi bi-grid-1x2"></i>
+          <span>Home</span>
+        </a>
+      </li>
 
-        </ul>
-      </div>
+      <li class="custom-sidenav__item">
+        <a class="custom-sidenav__link {% if segment == 'dashboard' %}active{% endif %}" href="{% url 'dashboard' %}">
+          <i class="bi bi-bar-chart-line"></i>
+          <span>Dashboard</span>
+        </a>
+      </li>
+
+      <li class="custom-sidenav__item">
+        <a class="custom-sidenav__link {% if segment == 'camera' %}active{% endif %}" href="{% url 'camera' %}">
+          <i class="bi bi-camera-video"></i>
+          <span>Cámara</span>
+        </a>
+      </li>
+
+      <li class="custom-sidenav__item">
+        <a class="custom-sidenav__link {% if segment == 'alerta' %}active{% endif %}" href="{% url 'alerta' %}">
+          <i class="bi bi-shield-exclamation"></i>
+          <span>Alertas</span>
+        </a>
+      </li>
+
+      <li class="custom-sidenav__item">
+        <a class="custom-sidenav__link {% if segment == 'lista_informes' %}active{% endif %}" href="{% url 'lista_informes' %}">
+          <i class="bi bi-file-earmark-text"></i>
+          <span>Informe</span>
+        </a>
+      </li>
+
+    </ul>
+
+    <div class="custom-sidenav__bottom">
+      <a href="/logout/" class="custom-sidenav__logout" title="Cerrar sesión">
+        <i class="bi bi-box-arrow-right"></i>
+        <span>Salir</span>
+      </a>
     </div>
+
   </div>
 </nav>

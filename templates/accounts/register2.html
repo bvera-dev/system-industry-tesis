@@ -12,7 +12,6 @@
 <div class="register-page">
   <div class="register-container">
 
-    <!-- LADO IZQUIERDO -->
     <div class="register-left">
       <div class="register-left__overlay"></div>
 
@@ -28,16 +27,13 @@
       </div>
     </div>
 
-    <!-- LADO DERECHO -->
     <div class="register-right">
       <div class="register-card">
         <span class="register-badge">Bienvenido</span>
 
         {% if success %}
           <h1 class="register-title">Registro completado</h1>
-          <p class="register-subtitle">
-            Tu cuenta fue creada correctamente.
-          </p>
+          <p class="register-subtitle">Tu cuenta fue creada correctamente.</p>
 
           <div class="success-box">
             <i class="bi bi-check-circle-fill"></i>
@@ -67,9 +63,7 @@
             {% csrf_token %}
 
             <div class="input-group-custom">
-              <span class="input-icon">
-                <i class="bi bi-person-fill"></i>
-              </span>
+              <span class="input-icon"><i class="bi bi-person-fill"></i></span>
               {{ form.username }}
             </div>
             {% if form.username.errors %}
@@ -77,9 +71,7 @@
             {% endif %}
 
             <div class="input-group-custom">
-              <span class="input-icon">
-                <i class="bi bi-envelope-fill"></i>
-              </span>
+              <span class="input-icon"><i class="bi bi-envelope-fill"></i></span>
               {{ form.email }}
             </div>
             {% if form.email.errors %}
@@ -87,9 +79,7 @@
             {% endif %}
 
             <div class="input-group-custom password-group">
-              <span class="input-icon">
-                <i class="bi bi-lock-fill"></i>
-              </span>
+              <span class="input-icon"><i class="bi bi-lock-fill"></i></span>
               {{ form.password1 }}
               <button type="button" class="toggle-password" data-target="{{ form.password1.id_for_label }}" aria-label="Mostrar u ocultar contraseña">
                 <i class="bi bi-eye"></i>
@@ -100,9 +90,7 @@
             {% endif %}
 
             <div class="input-group-custom password-group">
-              <span class="input-icon">
-                <i class="bi bi-shield-lock-fill"></i>
-              </span>
+              <span class="input-icon"><i class="bi bi-shield-lock-fill"></i></span>
               {{ form.password2 }}
               <button type="button" class="toggle-password" data-target="{{ form.password2.id_for_label }}" aria-label="Mostrar u ocultar confirmación de contraseña">
                 <i class="bi bi-eye"></i>

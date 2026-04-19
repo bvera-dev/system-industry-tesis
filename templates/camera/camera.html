@@ -10,8 +10,8 @@
           <div class="d-flex justify-content-between align-items-center">
             <h4 class="card-title mb-0 text-white">Vigilancia en Tiempo Real</h4>
             <div class="camera-status">
-              <span class="status-indicator active"></span>
-              <span>Conectado</span>
+              <span class="status-indicator inactive" id="cameraStatusIndicator"></span>
+              <span id="cameraStatusText">Verificando...</span>
             </div>
           </div>
         </div>
@@ -19,7 +19,7 @@
         <div class="card-body p-0">
           <div class="video-container position-relative">
             <!-- ✅ fps lento: agrega ?fps=8 -->
-            <img src="{% url 'video_feed' %}?fps=8" class="img-fluid security-feed" id="videoFeed">
+            <img src="" class="img-fluid security-feed" id="videoFeed" alt="Video de vigilancia">
 
 
             <div class="controls-overlay">
@@ -84,6 +84,7 @@
 
         <div class="card-body">
           <form id="registerFaceForm" enctype="multipart/form-data">
+          {% csrf_token %}
             <div class="mb-3">
               <label class="form-label">Captura facial</label>
 
@@ -125,6 +126,27 @@
     </div>
   </div>
 </div>
+
+
+<div class="modal fade" id="cameraErrorModal" tabindex="-1" aria-labelledby="cameraErrorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="cameraErrorModalLabel">
+          <i class="fas fa-video-slash me-2"></i> Cámara no disponible
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="cameraErrorMessage">
+        No se pudo acceder a la cámara.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block styles %}
@@ -178,15 +200,17 @@
 
 <script>
 $(document).ready(function() {
-
   const APP_CONFIG = {
-  urls: {
-    events: '{% url "get_security_events" %}',
-    registerFace: '{% url "register_face" %}',
-    videoFeed: '{% url "video_feed" %}'
-  }
-};
+    urls: {
+      events: '{% url "get_security_events" %}',
+      registerFace: '{% url "register_face" %}',
+      videoFeed: '{% url "video_feed" %}',
+      cameraStatus: '{% url "camera_status" %}'
+    }
+  };
 
+  const csrfToken = $('input[name=csrfmiddlewaretoken]').first().val() || '';
+  let lastLogId = 0;
 
   function escapeHtml(str) {
     return String(str)
@@ -199,26 +223,59 @@ $(document).ready(function() {
     const now = new Date();
     $('#lastUpdate').text('Última actualización: ' + now.toLocaleTimeString());
   }
-  setInterval(updateTimestamp, 1000);
-  updateTimestamp();
 
-  // ----------- EVENTS -----------
-  $('#refreshEvents').on('click', loadSecurityEvents);
+  function setCameraStatus(isOnline, text) {
+    const indicator = $('#cameraStatusIndicator');
+    const label = $('#cameraStatusText');
 
-  window.showEventImage = function(imageUrl) {
-    $('#modalEventImage').attr('src', imageUrl);
-    const modal = new bootstrap.Modal(document.getElementById('eventImageModal'));
+    indicator.removeClass('active inactive');
+    indicator.addClass(isOnline ? 'active' : 'inactive');
+    label.text(text);
+  }
+
+  function showCameraPopup(message) {
+    $('#cameraErrorMessage').text(message || 'No se pudo acceder a la cámara.');
+    const modal = new bootstrap.Modal(document.getElementById('cameraErrorModal'));
     modal.show();
-  };
+  }
+
+  function startVideoFeed() {
+    $.ajax({
+      url: APP_CONFIG.urls.cameraStatus,
+      method: 'GET',
+      success: function(data) {
+        if (data.success) {
+          const streamUrl = APP_CONFIG.urls.videoFeed + '?fps=8&t=' + new Date().getTime();
+          $('#videoFeed').attr('src', streamUrl);
+          setCameraStatus(true, 'Conectado');
+        } else {
+          $('#videoFeed').attr('src', '');
+          setCameraStatus(false, 'Sin cámara');
+          showCameraPopup(data.message || 'No se encontró una cámara disponible.');
+        }
+      },
+      error: function(xhr) {
+        let message = 'No se encontró una cámara disponible.';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          message = xhr.responseJSON.message;
+        }
+        $('#videoFeed').attr('src', '');
+        setCameraStatus(false, 'Sin cámara');
+        showCameraPopup(message);
+      }
+    });
+  }
 
   function loadSecurityEvents() {
     $.ajax({
       url: APP_CONFIG.urls.events,
       method: 'GET',
-      success: function(data) { renderEvents(data); },
+      success: function(data) {
+        renderEvents(data);
+      },
       error: function(xhr) {
         console.log("❌ get_security_events error:", xhr.status, xhr.responseText);
-        $('#eventsContainer').html(`<div class="alert alert-danger m-3">Error al cargar eventos.</div>`);
+        $('#eventsContainer').html('<div class="alert alert-danger m-3">Error al cargar eventos.</div>');
       }
     });
   }
@@ -229,13 +286,27 @@ $(document).ready(function() {
 
     if (events.length) {
       events.forEach(event => {
-        let alertClass = 'secondary', icon = 'fa-info-circle', priority = '---';
+        let alertClass = 'secondary';
+        let icon = 'fa-info-circle';
+        let priority = '---';
 
-        switch(event.event_type) {
-          case 'face_recognized': alertClass='success'; icon='fa-user-check'; priority='Baja'; break;
-          case 'face_unknown': alertClass='warning'; icon='fa-user-times'; priority='Media'; break;
+        switch (event.event_type) {
+          case 'face_recognized':
+            alertClass = 'success';
+            icon = 'fa-user-check';
+            priority = 'Baja';
+            break;
+          case 'face_unknown':
+            alertClass = 'warning';
+            icon = 'fa-user-times';
+            priority = 'Media';
+            break;
           case 'dangerous_object':
-          case 'unauthorized_access': alertClass='danger'; icon='fa-exclamation-triangle'; priority='Alta'; break;
+          case 'unauthorized_access':
+            alertClass = 'danger';
+            icon = 'fa-exclamation-triangle';
+            priority = 'Alta';
+            break;
         }
 
         const title = event.event_type_display || event.event_type || 'Evento';
@@ -262,8 +333,8 @@ $(document).ready(function() {
                 <img src="${event.image_url}" class="event-image-thumb img-thumbnail"
                      alt="Evidencia"
                      onclick="showEventImage('${event.image_url}')">
-              </div>` : ''
-            }
+              </div>
+            ` : ''}
           </div>
         `;
       });
@@ -274,14 +345,71 @@ $(document).ready(function() {
     $('#eventsContainer').html(html);
   }
 
-  // ----------- REGISTER FACE -----------
+  function appendLiveLog(items) {
+    const box = document.getElementById("liveLog");
+    if (!box || !items || !items.length) return;
+
+    items.forEach(it => {
+      const line = `[${it.ts}] ${it.msg}`;
+      box.innerHTML += escapeHtml(line) + "<br>";
+    });
+
+    box.scrollTop = box.scrollHeight;
+
+    const parts = box.innerHTML.split("<br>");
+    if (parts.length > 180) {
+      box.innerHTML = parts.slice(parts.length - 180).join("<br>");
+    }
+  }
+
+  function loadLiveLog() {
+    const box = document.getElementById("liveLog");
+    if (!box) return;
+
+    const url = box.dataset.url;
+    if (!url) return;
+
+    $.ajax({
+      url: url,
+      method: "GET",
+      data: { after: lastLogId },
+      success: function(data) {
+        const items = data.lines || [];
+        appendLiveLog(items);
+
+        if (typeof data.last_id === "number") {
+          lastLogId = data.last_id;
+        } else if (items.length) {
+          lastLogId = items[items.length - 1].id;
+        }
+      },
+      error: function(xhr) {
+        console.log("❌ live_status error:", xhr.status, xhr.responseText);
+      }
+    });
+  }
+
+  window.showEventImage = function(imageUrl) {
+    $('#modalEventImage').attr('src', imageUrl);
+    const modal = new bootstrap.Modal(document.getElementById('eventImageModal'));
+    modal.show();
+  };
+
+  $('#videoFeed').on('error', function() {
+    setCameraStatus(false, 'Error de stream');
+    showCameraPopup('No se pudo iniciar el stream de la cámara.');
+  });
+
+  $('#refreshEvents').on('click', loadSecurityEvents);
+
   $('#faceImage').on('change', function() {
     const file = this.files[0];
     if (!file) return;
+
     const reader = new FileReader();
     reader.onload = function(e) {
       $('#facePreview').html(`<img src="${e.target.result}" class="img-fluid" alt="Preview">`);
-    }
+    };
     reader.readAsDataURL(file);
   });
 
@@ -290,19 +418,22 @@ $(document).ready(function() {
 
     const fileInput = $('#faceImage')[0];
     if (!fileInput.files.length) {
-      $('#registrationResult').html(`<div class="alert alert-danger">Selecciona una imagen</div>`);
+      $('#registrationResult').html('<div class="alert alert-danger">Selecciona una imagen</div>');
       return;
     }
 
     const formData = new FormData();
     formData.append('image', fileInput.files[0]);
 
-    $('#registerBtn').prop('disabled', true).text('Procesando...');
+    $('#registerBtn').prop('disabled', true).html('Procesando...');
     $('#registrationResult').html('');
 
     $.ajax({
       url: APP_CONFIG.urls.registerFace,
       type: 'POST',
+      headers: {
+        'X-CSRFToken': csrfToken
+      },
       data: formData,
       processData: false,
       contentType: false,
@@ -315,68 +446,27 @@ $(document).ready(function() {
         }
       },
       error: function(xhr) {
-        console.log("❌ register_face error:", xhr.status, xhr.responseText);
-        $('#registrationResult').html('<div class="alert alert-danger">Error en servidor</div>');
+        let message = 'Error en servidor';
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+          message = xhr.responseJSON.message;
+        }
+        $('#registrationResult').html(`<div class="alert alert-danger">${escapeHtml(message)}</div>`);
       },
       complete: function() {
-        $('#registerBtn').prop('disabled', false).html('<i class="fas fa-user-plus me-2"></i>Registrar mi rostro');
+        $('#registerBtn')
+          .prop('disabled', false)
+          .html('<i class="fas fa-user-plus me-2"></i>Registrar mi rostro');
       }
     });
   });
 
-  // ----------- LIVE LOG (incremental) -----------
-  let lastLogId = 0;
+  setInterval(updateTimestamp, 1000);
+  updateTimestamp();
 
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;");
-}
-
-function appendLiveLog(items) {
-  const box = document.getElementById("liveLog");
-  if (!box || !items || !items.length) return;
-
-  items.forEach(it => {
-    const line = `[${it.ts}] ${it.msg}`;
-    box.innerHTML += escapeHtml(line) + "<br>";
-  });
-
-  box.scrollTop = box.scrollHeight;
-
-  const parts = box.innerHTML.split("<br>");
-  if (parts.length > 180) {
-    box.innerHTML = parts.slice(parts.length - 180).join("<br>");
-  }
-}
-
-function loadLiveLog() {
-  const box = document.getElementById("liveLog");
-  if (!box) return;
-
-  const url = box.dataset.url;
-  if (!url) return;
-
-  $.ajax({
-    url: url,
-    method: "GET",
-    data: { after: lastLogId },
-    success: function(data) {
-      const items = data.lines || [];
-      appendLiveLog(items);
-
-      if (typeof data.last_id === "number") lastLogId = data.last_id;
-      else if (items.length) lastLogId = items[items.length - 1].id;
-    },
-    error: function(xhr) {
-      console.log("❌ live_status error:", xhr.status, xhr.responseText);
-    }
-  });
-}
-
-loadLiveLog();
-setInterval(loadLiveLog, 800);
+  loadSecurityEvents();
+  startVideoFeed();
+  loadLiveLog();
+  setInterval(loadLiveLog, 800);
 });
 </script>
 {% endblock %}

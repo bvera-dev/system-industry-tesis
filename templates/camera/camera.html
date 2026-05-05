@@ -243,7 +243,7 @@ $(document).ready(function() {
       method: 'GET',
       success: function(data) {
         if (data.success) {
-          const streamUrl = APP_CONFIG.urls.videoFeed + '?fps=8&t=' + new Date().getTime();
+          const streamUrl = APP_CONFIG.urls.videoFeed + '?fps=12&t=' + new Date().getTime();
           $('#videoFeed').attr('src', streamUrl);
           setCameraStatus(true, 'Conectado');
         } else {
@@ -464,7 +464,7 @@ $(document).ready(function() {
   loadSecurityEvents();
   startVideoFeed();
   loadLiveLog();
-  setInterval(loadLiveLog, 800);
+  setInterval(loadLiveLog, 2000);
 });
 </script>
 {% endblock javascripts %}

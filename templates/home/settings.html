@@ -1,0 +1,362 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %} Configuración {% endblock title %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<link rel="stylesheet" href="{% static 'assets/css/themes.css' %}">
+<link rel="stylesheet" href="{% static 'assets/css/pages/settings.css' %}">
+{% endblock stylesheets %}
+
+{% block content %}
+
+<div class="settings-page">
+
+  <!-- Header superior -->
+  <div class="settings-topbar">
+    <div class="settings-user">
+      <div class="settings-avatar">
+        {{ request.user.username|first|upper }}
+      </div>
+
+      <div>
+        <h6>{{ request.user.get_full_name|default:request.user.username }}</h6>
+        <span>Última actualización reciente</span>
+      </div>
+    </div>
+
+    <div class="settings-actions">
+      <button class="settings-icon-btn">
+        <i class="bi bi-pencil"></i>
+      </button>
+
+      <button class="settings-icon-btn">
+        <i class="bi bi-trash"></i>
+      </button>
+
+      <button class="settings-icon-btn">
+        <i class="bi bi-person"></i>
+      </button>
+
+      <button class="settings-icon-btn">
+        <i class="bi bi-three-dots"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Título -->
+  <div class="settings-header">
+    <h1>Configuración</h1>
+
+    <div class="settings-search">
+      <i class="bi bi-search"></i>
+      <input type="text" placeholder="Buscar configuración">
+    </div>
+  </div>
+
+  <div class="settings-layout">
+
+    <!-- Menú lateral -->
+    <aside class="settings-sidebar">
+
+      <div class="settings-menu-group">
+        <span>Cuenta</span>
+
+        <button class="settings-menu-item active" data-section="profile">
+          Perfil de usuario
+        </button>
+
+        <button class="settings-menu-item" data-section="email">
+          Cambiar correo
+        </button>
+
+        <button class="settings-menu-item" data-section="password">
+          Cambiar contraseña
+        </button>
+      </div>
+
+      <div class="settings-menu-group">
+        <span>Personalización</span>
+
+        <button class="settings-menu-item" data-section="appearance">
+          Apariencia
+        </button>
+
+        <button class="settings-menu-item" data-section="darkmode">
+          Modo oscuro
+        </button>
+
+        <button class="settings-menu-item" data-section="notifications">
+          Notificaciones
+        </button>
+      </div>
+
+      <div class="settings-menu-group">
+        <span>Seguridad</span>
+
+        <button class="settings-menu-item" data-section="login">
+          Inicio de sesión
+        </button>
+
+        <button class="settings-menu-item" data-section="devices">
+          Dispositivos
+        </button>
+      </div>
+
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="settings-content">
+
+      <!-- Perfil -->
+      <section class="settings-section active" id="profile">
+        <div class="settings-section-header">
+          <h3>Perfil de usuario</h3>
+          <p>Administra tu información personal dentro del sistema.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-person"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Nombre de usuario</h4>
+            <p>Este nombre será visible dentro del sistema.</p>
+          </div>
+
+          <input class="settings-input" type="text" value="{{ request.user.username }}">
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-card-text"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Nombres completos</h4>
+            <p>Actualiza tus nombres y apellidos.</p>
+          </div>
+
+          <input class="settings-input" type="text" value="{{ request.user.get_full_name }}">
+        </div>
+      </section>
+
+      <!-- Cambiar correo -->
+      <section class="settings-section" id="email">
+        <div class="settings-section-header">
+          <h3>Cambiar correo</h3>
+          <p>Actualiza el correo electrónico asociado a tu cuenta.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-envelope"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Correo actual</h4>
+            <p>Correo registrado actualmente.</p>
+          </div>
+
+          <input class="settings-input" type="email" value="{{ request.user.email }}">
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-envelope-plus"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Nuevo correo</h4>
+            <p>Ingresa el nuevo correo electrónico.</p>
+          </div>
+
+          <input class="settings-input" type="email" placeholder="nuevo@correo.com">
+        </div>
+      </section>
+
+      <!-- Cambiar contraseña -->
+      <section class="settings-section" id="password">
+        <div class="settings-section-header">
+          <h3>Cambiar contraseña</h3>
+          <p>Actualiza tu contraseña para mantener segura tu cuenta.</p>
+        </div>
+
+        <div class="settings-card vertical">
+          <label>Contraseña actual</label>
+          <input class="settings-input full" type="password" placeholder="Ingresa tu contraseña actual">
+
+          <label>Nueva contraseña</label>
+          <input class="settings-input full" type="password" placeholder="Ingresa tu nueva contraseña">
+
+          <label>Confirmar contraseña</label>
+          <input class="settings-input full" type="password" placeholder="Confirma la nueva contraseña">
+        </div>
+      </section>
+
+      <!-- Apariencia -->
+      <section class="settings-section" id="appearance">
+        <div class="settings-section-header">
+          <h3>Personalización</h3>
+          <p>Configura la apariencia visual del sistema.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-palette"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Color principal</h4>
+            <p>Selecciona el color principal de la interfaz.</p>
+          </div>
+
+          <select class="settings-input">
+            <option>Verde</option>
+            <option>Azul</option>
+            <option>Morado</option>
+            <option>Rojo</option>
+          </select>
+        </div>
+
+        <div class="settings-card success">
+          <div class="settings-card-icon">
+            <i class="bi bi-layout-text-window"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Diseño compacto</h4>
+            <p>Reduce espacios para mostrar más información.</p>
+          </div>
+
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Modo oscuro -->
+      <section class="settings-section" id="darkmode">
+        <div class="settings-section-header">
+          <h3>Modo oscuro</h3>
+          <p>Activa o desactiva el tema oscuro del sistema.</p>
+        </div>
+
+        <div class="settings-card success">
+          <div class="settings-card-icon">
+            <i class="bi bi-moon-stars"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Activar modo oscuro</h4>
+            <p>Cambia la interfaz a tonos oscuros para reducir el brillo.</p>
+          </div>
+
+          <label class="switch">
+            <input type="checkbox" id="darkModeToggle">
+            <span></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Notificaciones -->
+      <section class="settings-section" id="notifications">
+        <div class="settings-section-header">
+          <h3>Notificaciones</h3>
+          <p>Define cómo deseas recibir alertas del sistema.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-bell"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Alertas de seguridad</h4>
+            <p>Recibe alertas cuando se detecten eventos peligrosos.</p>
+          </div>
+
+          <label class="switch">
+            <input type="checkbox" checked>
+            <span></span>
+          </label>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-envelope-paper"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Alertas por correo</h4>
+            <p>Enviar notificaciones importantes al correo registrado.</p>
+          </div>
+
+          <label class="switch">
+            <input type="checkbox">
+            <span></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Inicio de sesión -->
+      <section class="settings-section" id="login">
+        <div class="settings-section-header">
+          <h3>Inicio de sesión</h3>
+          <p>Gestiona opciones relacionadas con el acceso al sistema.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-shield-lock"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Verificación adicional</h4>
+            <p>Solicitar validación extra al iniciar sesión.</p>
+          </div>
+
+          <label class="switch">
+            <input type="checkbox">
+            <span></span>
+          </label>
+        </div>
+      </section>
+
+      <!-- Dispositivos -->
+      <section class="settings-section" id="devices">
+        <div class="settings-section-header">
+          <h3>Dispositivos</h3>
+          <p>Visualiza dispositivos asociados a tu cuenta.</p>
+        </div>
+
+        <div class="settings-card">
+          <div class="settings-card-icon">
+            <i class="bi bi-laptop"></i>
+          </div>
+
+          <div class="settings-card-info">
+            <h4>Este dispositivo</h4>
+            <p>Navegador actual en uso.</p>
+          </div>
+
+          <span class="settings-status">Activo</span>
+        </div>
+      </section>
+
+      <button class="settings-save-btn">
+        Guardar cambios
+      </button>
+
+    </main>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block javascripts %}
+<script src="{% static 'assets/js/settings.js' %}"></script>
+{% endblock javascripts %}

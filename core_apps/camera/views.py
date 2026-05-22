@@ -483,4 +483,4 @@ class CameraView(TemplateView):
 
 
 class AlertaView(TemplateView):
-    template_name = "camera/alerta.html"
+    template_name = "alertas/alerta.html"

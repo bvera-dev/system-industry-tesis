@@ -14,8 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import TemplateView
 
 from .models import AuthorizedPerson, SecurityEvent
-from .utils import create_security_event
-
+from core_apps.camera.utils import create_security_event, can_save_event
 
 # =========================
 # LIVE LOG (RAM) - incremental
@@ -100,7 +99,72 @@ YOLO_CONFIG = {
     "weights": os.path.join(settings.BASE_DIR, "camera", "yolov3-tiny.weights"),
     "cfg": os.path.join(settings.BASE_DIR, "camera", "yolov3-tiny.cfg"),
     "classes": os.path.join(settings.BASE_DIR, "camera", "coco.names"),
-    "dangerous_classes": ["knife", "gun", "scissors", "bottle"],
+
+    # Clases COCO que el sistema debe monitorear.
+    # Nota: "gun" no existe en coco.names, por eso no se incluye aquí.
+    "monitored_classes": [
+        "knife",
+        "scissors",
+        "baseball bat",
+        "bottle",
+        "cell phone",
+        "backpack",
+        "handbag",
+        "suitcase",
+    ],
+}
+
+# Reglas de clasificación para los objetos monitoreados por YOLO.
+# event_type debe coincidir con los choices del modelo SecurityEvent.
+OBJECT_RULES = {
+    "knife": {
+        "event_type": "dangerous_object",
+        "message": "Objeto cortopunzante detectado: cuchillo",
+        "priority": "Alta",
+        "color": (0, 0, 255),
+    },
+    "scissors": {
+        "event_type": "dangerous_object",
+        "message": "Objeto cortopunzante detectado: tijeras",
+        "priority": "Alta",
+        "color": (0, 0, 255),
+    },
+    "baseball bat": {
+        "event_type": "dangerous_object",
+        "message": "Objeto contundente detectado",
+        "priority": "Alta",
+        "color": (0, 0, 255),
+    },
+    "bottle": {
+        "event_type": "dangerous_object",
+        "message": "Botella detectada en zona monitoreada",
+        "priority": "Media",
+        "color": (0, 165, 255),
+    },
+    "cell phone": {
+        "event_type": "unauthorized_access",
+        "message": "Objeto no autorizado detectado: celular",
+        "priority": "Media",
+        "color": (0, 255, 255),
+    },
+    "backpack": {
+        "event_type": "unauthorized_access",
+        "message": "Objeto no autorizado detectado: mochila",
+        "priority": "Media",
+        "color": (0, 255, 255),
+    },
+    "handbag": {
+        "event_type": "unauthorized_access",
+        "message": "Objeto no autorizado detectado: bolso",
+        "priority": "Media",
+        "color": (0, 255, 255),
+    },
+    "suitcase": {
+        "event_type": "unauthorized_access",
+        "message": "Objeto no autorizado detectado: maleta",
+        "priority": "Media",
+        "color": (0, 255, 255),
+    },
 }
 
 _YOLO_CACHE = {"net": None, "classes": None}
@@ -242,7 +306,7 @@ def gen_frames(target_fps: int = 10):
                         confidence = float(scores[class_id])
                         if confidence > 0.5:
                             label = coco_classes[class_id]
-                            if label in YOLO_CONFIG["dangerous_classes"]:
+                            if label in YOLO_CONFIG["monitored_classes"]:
                                 cx = int(det[0] * width)
                                 cy = int(det[1] * height)
                                 w = int(det[2] * width)
@@ -262,22 +326,53 @@ def gen_frames(target_fps: int = 10):
                         label = coco_classes[class_ids[i]]
                         conf = confs[i]
 
-                        _log_line(f"OBJ: {label} ({conf:.2f})", key=f"obj_{label}", throttle_sec=0.25)
+                        rule = OBJECT_RULES.get(label)
+                        if rule is None:
+                            continue
 
-                        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 0, 255), 2)
-                        cv2.putText(frame, f"{label}: {conf:.2f}", (x, max(y - 10, 20)),
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+                        event_type = rule["event_type"]
+                        priority = rule["priority"]
+                        message = rule["message"]
+                        color = rule["color"]
 
-                        if (frame_counter - last_danger_event_frame) > 60:
+                        _log_line(
+                            f"OBJ: {label} ({conf:.2f}) | {priority}",
+                            key=f"obj_{label}",
+                            throttle_sec=0.25,
+                        )
+
+                        cv2.rectangle(frame, (x, y), (x + w, y + h), color, 2)
+                        cv2.putText(
+                            frame,
+                            f"{label}: {conf:.2f} | {priority}",
+                            (x, max(y - 10, 20)),
+                            cv2.FONT_HERSHEY_SIMPLEX,
+                            0.6,
+                            color,
+                            2,
+                        )
+
+                        if can_save_event(f"{event_type}_camera_1_{label}", seconds=20):
                             try:
                                 create_security_event(
-                                    event_type="dangerous_object",
-                                    details=f"Se detectó objeto peligroso: {label} (confianza {conf:.2f})",
-                                    frame=frame,
+                                    event_type=event_type,
+                                    details=f"{message} | Prioridad: {priority} | Confianza: {conf:.2f}",
+                                    frame=frame.copy(),
+                                    user=None,
+                                    camara="Cámara 1",
+                                    epp_correcto=False,
+                                )
+                                _log_line(
+                                    f"📸 Evidencia guardada: {label} ({priority})",
+                                    key=f"evidence_{event_type}_{label}",
+                                    throttle_sec=2,
                                 )
                             except Exception as e:
-                                _log_line(f"❌ Error guardando dangerous_object: {e}", key="db_danger_err", throttle_sec=5)
-                            last_danger_event_frame = frame_counter
+                                _log_line(
+                                    f"❌ Error guardando {event_type}: {e}",
+                                    key=f"db_{event_type}_err",
+                                    throttle_sec=5,
+                                )
 
             # PPE
             if ppe_model is not None and frame_counter % 10 == 0:

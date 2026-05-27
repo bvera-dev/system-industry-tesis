@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
 from django.conf import settings
+from django.core.files.storage import default_storage
 
 class AuthorizedPerson(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -24,7 +25,7 @@ class SecurityEvent(models.Model):
 
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
     details = models.TextField()
-    image_path = models.CharField(max_length=255, blank=True, null=True)
+    image_path = models.CharField(max_length=500, blank=True, null=True)
     timestamp = models.DateTimeField(auto_now_add=True)
     resolved = models.BooleanField(default=False)
     related_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
@@ -37,10 +38,19 @@ class SecurityEvent(models.Model):
     def __str__(self):
         return f"{self.get_event_type_display()} - {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"
 
+    #def get_image_url(self):
+    #    if self.image_path:
+    #        return f"{settings.MEDIA_URL}{self.image_path}"
+    #    return None
+
     def get_image_url(self):
         if self.image_path:
-            return f"{settings.MEDIA_URL}{self.image_path}"
+            try:
+                return default_storage.url(self.image_path)
+            except:
+                return None
         return None
+
 
     def get_person_name(self):
         if self.related_user:

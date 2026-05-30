@@ -1,6 +1,7 @@
-from django.db import models
-from django.contrib.auth.models import User
 from django.conf import settings
+from django.contrib.auth.models import User
+from django.db import models
+
 
 class AuthorizedPerson(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
@@ -16,10 +17,12 @@ class AuthorizedPerson(models.Model):
 
 class SecurityEvent(models.Model):
     EVENT_TYPES = (
-        ('face_recognized', 'Rostro reconocido'),
-        ('face_unknown', 'Rostro desconocido'),
-        ('dangerous_object', 'Objeto peligroso detectado'),
-        ('unauthorized_access', 'Acceso no autorizado'),
+        ("face_recognized", "Rostro reconocido"),
+        ("face_unknown", "Rostro desconocido"),
+        ("dangerous_object", "Objeto peligroso detectado"),
+        ("ppe_missing", "Falta de EPP"),
+        ("ppe_incorrect", "Uso incorrecto de EPP"),
+        ("camera_error", "Error de cámara"),
     )
 
     event_type = models.CharField(max_length=50, choices=EVENT_TYPES)
@@ -30,9 +33,9 @@ class SecurityEvent(models.Model):
     related_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
 
     class Meta:
-        ordering = ['-timestamp']
-        verbose_name = 'Evento de Seguridad'
-        verbose_name_plural = 'Eventos de Seguridad'
+        ordering = ["-timestamp"]
+        verbose_name = "Evento de Seguridad"
+        verbose_name_plural = "Eventos de Seguridad"
 
     def __str__(self):
         return f"{self.get_event_type_display()} - {self.timestamp.strftime('%Y-%m-%d %H:%M:%S')}"

@@ -45,9 +45,11 @@
         <div class="card-footer">
           <div class="d-flex justify-content-between align-items-center">
             <div class="legend">
-              <span class="badge bg-success me-2">Rostro autorizado</span>
-              <span class="badge bg-danger me-2">Rostro desconocido</span>
-              <span class="badge bg-warning">Objeto peligroso</span>
+              <span class="badge bg-success me-2">Rostro reconocido</span>
+              <span class="badge bg-warning me-2">Rostro desconocido</span>
+              <span class="badge bg-danger me-2">Objeto peligroso</span>
+              <span class="badge bg-warning me-2">Falta de EPP</span>
+              <span class="badge bg-warning">EPP incorrecto</span>
             </div>
             <small class="text-muted" id="lastUpdate"></small>
           </div>
@@ -294,16 +296,35 @@ $(document).ready(function() {
             icon = 'fa-user-check';
             priority = 'Baja';
             break;
+
           case 'face_unknown':
             alertClass = 'warning';
             icon = 'fa-user-times';
             priority = 'Media';
             break;
+
           case 'dangerous_object':
-          case 'unauthorized_access':
             alertClass = 'danger';
             icon = 'fa-exclamation-triangle';
             priority = 'Alta';
+            break;
+
+          case 'ppe_missing':
+            alertClass = 'warning';
+            icon = 'fa-hard-hat';
+            priority = 'Alta';
+            break;
+
+          case 'ppe_incorrect':
+            alertClass = 'warning';
+            icon = 'fa-user-shield';
+            priority = 'Alta';
+            break;
+
+          case 'camera_error':
+            alertClass = 'secondary';
+            icon = 'fa-video-slash';
+            priority = 'Media';
             break;
         }
 

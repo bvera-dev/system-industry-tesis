@@ -3,6 +3,8 @@ from __future__ import annotations
 import time
 
 from ..utils import create_security_event
+from .analysis_config import ANALYSIS_CONFIG
+from .event_guard import build_event_key, should_emit_event
 from .live_log import log_line
 from .model_loader import (
     YOLO_CONFIG,
@@ -14,7 +16,12 @@ from .model_loader import (
 
 
 def _safe_nms_indexes(cv2, boxes, confs):
-    idxs = cv2.dnn.NMSBoxes(boxes, confs, 0.5, 0.4)
+    idxs = cv2.dnn.NMSBoxes(
+        boxes,
+        confs,
+        ANALYSIS_CONFIG["danger_conf_threshold"],
+        0.4,
+    )
     if idxs is None:
         return []
     if hasattr(idxs, "flatten"):
@@ -22,7 +29,7 @@ def _safe_nms_indexes(cv2, boxes, confs):
     return list(idxs)
 
 
-def gen_frames(stream, target_fps: int = 12):
+def gen_frames(stream, target_fps: int | None = None):
     cv2 = safe_import_cv2()
     np = safe_import_numpy()
     net, coco_classes = load_yolo()
@@ -34,21 +41,30 @@ def gen_frames(stream, target_fps: int = 12):
             stream.stop()
         return
 
+    target_fps = target_fps or ANALYSIS_CONFIG["stream_fps"]
     target_fps = max(1, min(int(target_fps), 15))
     frame_interval = 1.0 / float(target_fps)
 
-    analysis_width = 256
-    analysis_height = 192
-    output_width = 480
-    output_height = 360
-    jpeg_quality = 40
+    analysis_width = ANALYSIS_CONFIG["analysis_width"]
+    analysis_height = ANALYSIS_CONFIG["analysis_height"]
+    output_width = ANALYSIS_CONFIG["output_width"]
+    output_height = ANALYSIS_CONFIG["output_height"]
+    jpeg_quality = ANALYSIS_CONFIG["jpeg_quality"]
 
-    face_interval = 0.45
-    danger_interval = 1.20
-    ppe_interval = 2.50
+    face_interval = ANALYSIS_CONFIG["face_interval"]
+    danger_interval = ANALYSIS_CONFIG["danger_interval"]
+    ppe_interval = ANALYSIS_CONFIG["ppe_interval"]
 
-    danger_event_cooldown = 6.0
-    ppe_event_cooldown = 8.0
+    danger_event_cooldown = ANALYSIS_CONFIG["danger_event_cooldown"]
+    ppe_event_cooldown = ANALYSIS_CONFIG["ppe_event_cooldown"]
+
+    danger_conf_threshold = ANALYSIS_CONFIG["danger_conf_threshold"]
+    ppe_conf_threshold = ANALYSIS_CONFIG["ppe_conf_threshold"]
+
+    required_ppe_labels = set(label.lower() for label in ANALYSIS_CONFIG["required_ppe_labels"])
+    negative_ppe_prefix = ANALYSIS_CONFIG["negative_ppe_prefix"]
+    overlay_text = ANALYSIS_CONFIG["overlay_text"]
+    dangerous_classes = set(ANALYSIS_CONFIG["dangerous_classes"])
 
     face_cascade = cv2.CascadeClassifier(
         cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
@@ -57,9 +73,6 @@ def gen_frames(stream, target_fps: int = 12):
     last_face_run = 0.0
     last_danger_run = 0.0
     last_ppe_run = 0.0
-
-    last_danger_event_at = 0.0
-    last_ppe_event_at = 0.0
 
     cached_faces = []
     cached_danger_items = []
@@ -134,11 +147,11 @@ def gen_frames(stream, target_fps: int = 12):
                         class_id = int(np.argmax(scores))
                         confidence = float(scores[class_id])
 
-                        if confidence <= 0.5:
+                        if confidence <= danger_conf_threshold:
                             continue
 
                         label = coco_classes[class_id]
-                        if label not in YOLO_CONFIG["dangerous_classes"]:
+                        if label not in dangerous_classes:
                             continue
 
                         cx = int(det[0] * analysis_width)
@@ -179,11 +192,18 @@ def gen_frames(stream, target_fps: int = 12):
                             throttle_sec=1.0,
                         )
 
-                        if (now - last_danger_event_at) >= danger_event_cooldown:
+                        event_details = f"Se detectó objeto peligroso: {label} (confianza {conf:.2f})"
+                        event_key = build_event_key(
+                            event_type="dangerous_object",
+                            details=f"{label}",
+                            zone="camera_main",
+                        )
+
+                        if should_emit_event(event_key, danger_event_cooldown):
                             try:
                                 create_security_event(
                                     event_type="dangerous_object",
-                                    details=f"Se detectó objeto peligroso: {label} (confianza {conf:.2f})",
+                                    details=event_details,
                                     frame=frame,
                                 )
                             except Exception as e:
@@ -192,7 +212,6 @@ def gen_frames(stream, target_fps: int = 12):
                                     key="db_danger_err",
                                     throttle_sec=5,
                                 )
-                            last_danger_event_at = now
 
                 last_danger_run = now
 
@@ -212,7 +231,7 @@ def gen_frames(stream, target_fps: int = 12):
                         conf = float(b.conf[0])
                         x1, y1, x2, y2 = map(int, b.xyxy[0].tolist())
 
-                        if conf < 0.60:
+                        if conf < ppe_conf_threshold:
                             continue
 
                         if label == "person":
@@ -238,7 +257,7 @@ def gen_frames(stream, target_fps: int = 12):
 
                     new_ppe_overlays = []
 
-                    for (px1, py1, px2, py2) in persons:
+                    for index, (px1, py1, px2, py2) in enumerate(persons):
                         present = set()
                         negatives = set()
 
@@ -248,13 +267,15 @@ def gen_frames(stream, target_fps: int = 12):
 
                             if px1 <= cx <= px2 and py1 <= cy <= py2:
                                 present.add(label)
-                                if label.startswith("no-"):
-                                    negatives.add(label)
+                                if label.startswith(negative_ppe_prefix):
+                                    negatives.add(label)    
 
                         if negatives:
-                            msg = "⚠ Indumentaria incorrecta: " + ", ".join(
+                            normalized_negatives = sorted([x.upper() for x in negatives])
+                            msg = overlay_text["ppe_incorrect_prefix"] + ", ".join(
                                 sorted([x.upper() for x in negatives])
                             )
+
                             new_ppe_overlays.append(
                                 {
                                     "text": msg,
@@ -262,34 +283,35 @@ def gen_frames(stream, target_fps: int = 12):
                                     "color": (0, 255, 255),
                                 }
                             )
+
                             log_line(f"PPE: {msg}", key="ppe_neg", throttle_sec=1.5)
 
-                            if (now - last_ppe_event_at) >= ppe_event_cooldown:
+                            event_key = build_event_key(
+                                event_type="ppe_incorrect",
+                                details="|".join(normalized_negatives),
+                                zone=f"person_{index}",
+                            )
+
+                            if should_emit_event(event_key, ppe_event_cooldown):
                                 try:
                                     create_security_event(
-                                        event_type="unauthorized_access",
+                                        event_type="ppe_incorrect",
                                         details=msg,
                                         frame=frame,
                                     )
                                 except Exception as e:
                                     log_line(
-                                        f"❌ Error guardando PPE: {e}",
-                                        key="db_ppe_err",
+                                        f"❌ Error guardando PPE incorrecto: {e}",
+                                        key="db_ppe_incorrect_err",
                                         throttle_sec=5,
                                     )
-                                last_ppe_event_at = now
                             continue
 
-                        missing = []
-                        if "hardhat" not in present:
-                            missing.append("hardhat")
-                        if "safety vest" not in present:
-                            missing.append("safety vest")
-                        if "mask" not in present:
-                            missing.append("mask")
+                        missing = sorted(list(required_ppe_labels - present))
 
                         if missing:
-                            msg = f"⚠ Falta EPP: {', '.join(missing)}"
+                            msg = overlay_text["ppe_missing_prefix"] + ", ".join(missing)
+
                             new_ppe_overlays.append(
                                 {
                                     "text": msg,
@@ -297,32 +319,39 @@ def gen_frames(stream, target_fps: int = 12):
                                     "color": (0, 255, 255),
                                 }
                             )
+
                             log_line(f"PPE: {msg}", key="ppe_missing", throttle_sec=1.5)
 
-                            if (now - last_ppe_event_at) >= ppe_event_cooldown:
+                            event_key = build_event_key(
+                                event_type="ppe_missing",
+                                details="|".join(missing),
+                                zone=f"person_{index}",
+                            )
+
+                            if should_emit_event(event_key, ppe_event_cooldown):
                                 try:
                                     create_security_event(
-                                        event_type="unauthorized_access",
+                                        event_type="ppe_missing",
                                         details=msg,
                                         frame=frame,
                                     )
                                 except Exception as e:
                                     log_line(
-                                        f"❌ Error guardando PPE: {e}",
-                                        key="db_ppe_err",
+                                        f"❌ Error guardando PPE faltante: {e}",
+                                        key="db_ppe_missing_err",
                                         throttle_sec=5,
                                     )
-                                last_ppe_event_at = now
                         else:
                             new_ppe_overlays.append(
                                 {
-                                    "text": "EPP OK",
+                                    "text": overlay_text["ppe_ok"],
                                     "box": (px1, py1, px2, py2),
                                     "color": (0, 255, 0),
                                 }
                             )
 
                     cached_ppe_overlays = new_ppe_overlays
+
                 except Exception as e:
                     log_line(f"❌ Error PPE detect: {e}", key="ppe_detect_err", throttle_sec=5)
 

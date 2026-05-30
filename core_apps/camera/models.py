@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.conf import settings
 from django.core.files.storage import default_storage
+from django.db import models
 
 class AuthorizedPerson(models.Model):
     #user = models.OneToOneField(User, on_delete=models.CASCADE)

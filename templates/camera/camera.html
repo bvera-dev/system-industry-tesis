@@ -39,11 +39,30 @@
 
           <div>
             <h4>Vigilancia en Tiempo Real</h4>
-            <span>Cámara principal · SMRI-CAM-001</span>
+            <span id="cameraLabel">
+  {% if selected_camera %}
+    {{ selected_camera.nombre }} · {{ selected_camera.ubicacion|default:"Sin ubicación" }}
+  {% else %}
+    No hay cámaras configuradas
+  {% endif %}
+</span>
           </div>
         </div>
 
         <div class="camera-actions">
+
+          {% if cameras %}
+          <select id="cameraSelector" class="camera-select">
+            {% for camera in cameras %}
+              <option 
+                value="{% url 'video_feed_camera' camera.id %}"
+                data-label="{{ camera.nombre }} · {{ camera.ubicacion|default:'Sin ubicación' }}">
+                {{ camera.nombre }}
+              </option>
+            {% endfor %}
+          </select>
+          {% endif %}
+
           <button id="snapshotBtn" class="camera-icon-btn" title="Capturar imagen" type="button">
             <i class="fas fa-camera"></i>
           </button>
@@ -55,7 +74,18 @@
       </div>
 
       <div class="camera-screen" id="cameraScreen">
-        <img src="{% url 'video_feed' %}" class="camera-feed" id="videoFeed" alt="Video en vivo">
+        {% if selected_camera %}
+          <img 
+            src="{% url 'video_feed_camera' selected_camera.id %}?fps=8" 
+            class="camera-feed" 
+            id="videoFeed" 
+            alt="Video en vivo">
+        {% else %}
+          <div class="no-camera-box">
+            <i class="fas fa-video-slash"></i>
+            <span>No hay cámaras activas configuradas.</span>
+          </div>
+        {% endif %}
 
         <div class="live-badge">
           <span></span>
@@ -138,14 +168,70 @@
           </div>
 
           <div class="form-group-custom">
+            <label>Nombres</label>
+            <input
+              type="text"
+              class="form-control"
+              id="authorizedNombres"
+              name="nombres"
+              placeholder="Ej. Juan Carlos">
+          </div>
+
+          <div class="form-group-custom">
+            <label>Apellidos</label>
+            <input
+              type="text"
+              class="form-control"
+              id="authorizedApellidos"
+              name="apellidos"
+              placeholder="Ej. Pérez Vera">
+          </div>
+
+          <div class="form-group-custom">
+            <label>Celular</label>
+            <input
+              type="text"
+              class="form-control"
+              id="authorizedCelular"
+              name="celular"
+              placeholder="Ej. 0999999999">
+          </div>
+
+          <div class="form-group-custom">
+            <label>Correo</label>
+            <input
+              type="email"
+              class="form-control"
+              id="authorizedCorreo"
+              name="correo"
+              placeholder="persona@empresa.com">
+          </div>
+
+          <div class="form-group-custom">
+            <label>Cargo</label>
+            <input
+              type="text"
+              class="form-control"
+              id="authorizedCargo"
+              name="cargo"
+              placeholder="Ej. Operador de planta">
+          </div>
+
+          <div class="form-group-custom">
             <label>Captura facial</label>
-            <input type="file" class="form-control" id="faceImage" name="image" accept="image/*" capture="user">
-            <small>Procura mirar directamente a la cámara con buena iluminación.</small>
+            <input
+              type="file"
+              class="form-control"
+              id="faceImage"
+              name="image"
+              accept="image/*"
+              capture="user">
+            <small>Procura usar una imagen clara, frontal y con buena iluminación.</small>
           </div>
 
           <button type="submit" class="primary-action-btn" id="registerBtn">
             <i class="fas fa-user-plus me-2"></i>
-            Registrar mi rostro
+            Registrar rostro autorizado
           </button>
         </form>
 
@@ -189,6 +275,18 @@
         videoFeed: '{% url "video_feed" %}'
       }
     };
+
+    $('#cameraSelector').on('change', function () {
+      const selectedOption = $(this).find(':selected');
+      const videoUrl = selectedOption.val();
+      const label = selectedOption.data('label');
+
+      $('#cameraLabel').text(label);
+
+      const finalUrl = videoUrl + '?fps=8&t=' + Date.now();
+
+      $('#videoFeed').attr('src', finalUrl);
+    });
 
     function escapeHtml(str) {
       return String(str)
@@ -323,6 +421,7 @@
                 <strong>${escapeHtml(title)}</strong>
                 <small>${escapeHtml(event.timestamp || '')}</small>
                 <p>${escapeHtml(details)}</p>
+                <small><i class="fas fa-video"></i> ${escapeHtml(event.camera || 'Sin cámara')}</small>
               </div>
 
               <span class="event-priority">${priority}</span>
@@ -369,83 +468,133 @@
     });
 
     $('#registerFaceForm').on('submit', function (e) {
-      e.preventDefault();
+  e.preventDefault();
 
-      const fileInput = $('#faceImage')[0];
+  const nombres = $('#authorizedNombres').val().trim();
+  const apellidos = $('#authorizedApellidos').val().trim();
+  const celular = $('#authorizedCelular').val().trim();
+  const correo = $('#authorizedCorreo').val().trim();
+  const cargo = $('#authorizedCargo').val().trim();
 
-      if (!fileInput.files.length) {
+  const fileInput = $('#faceImage')[0];
+
+  if (!nombres) {
+    $('#registrationResult').html(`
+      <div class="alert alert-danger">
+        Ingresa los nombres de la persona.
+      </div>
+    `);
+    return;
+  }
+
+  if (!apellidos) {
+    $('#registrationResult').html(`
+      <div class="alert alert-danger">
+        Ingresa los apellidos de la persona.
+      </div>
+    `);
+    return;
+  }
+
+  if (!correo) {
+    $('#registrationResult').html(`
+      <div class="alert alert-danger">
+        Ingresa el correo de la persona.
+      </div>
+    `);
+    return;
+  }
+
+  if (!cargo) {
+    $('#registrationResult').html(`
+      <div class="alert alert-danger">
+        Ingresa el cargo de la persona.
+      </div>
+    `);
+    return;
+  }
+
+  if (!fileInput.files.length) {
+    $('#registrationResult').html(`
+      <div class="alert alert-danger">
+        Selecciona una imagen del rostro.
+      </div>
+    `);
+    return;
+  }
+
+  const formData = new FormData();
+
+  formData.append('nombres', nombres);
+  formData.append('apellidos', apellidos);
+  formData.append('celular', celular);
+  formData.append('correo', correo);
+  formData.append('cargo', cargo);
+  formData.append('image', fileInput.files[0]);
+
+  $('#registerBtn')
+    .prop('disabled', true)
+    .html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
+
+  $('#registrationResult').html('');
+
+  $.ajax({
+    url: APP_CONFIG.urls.registerFace,
+    type: 'POST',
+    data: formData,
+    processData: false,
+    contentType: false,
+    success: function (data) {
+      if (data.success === true) {
         $('#registrationResult').html(`
-        <div class="alert alert-danger">
-          Selecciona una imagen.
-        </div>
-      `);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('image', fileInput.files[0]);
-
-      $('#registerBtn')
-        .prop('disabled', true)
-        .html('<i class="fas fa-spinner fa-spin me-2"></i>Procesando...');
-
-      $('#registrationResult').html('');
-
-      $.ajax({
-        url: APP_CONFIG.urls.registerFace,
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (data) {
-          if (data.success === true) {
-            $('#registrationResult').html(`
-            <div class="alert alert-success">
-              ${escapeHtml(data.message || 'Rostro registrado correctamente.')}
-            </div>
-          `);
-
-            $('#facePreview').html(`
-            <i class="fas fa-check-circle" style="color:#22c55e;"></i>
-            <span>Registro completado</span>
-          `);
-          } else {
-            $('#registrationResult').html(`
-            <div class="alert alert-danger">
-              ${escapeHtml(data.message || 'No se pudo registrar el rostro.')}
-            </div>
-          `);
-          }
-        },
-        error: function (xhr) {
-          console.log("❌ register_face error:", xhr.status, xhr.responseText);
-
-          let message = "Error en servidor";
-
-          if (xhr.responseJSON && xhr.responseJSON.message) {
-            message = xhr.responseJSON.message;
-          } else if (xhr.responseText) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              message = response.message || response.error || message;
-            } catch (e) {
-              message = "Error en servidor.";
-            }
-          }
-
-          $('#registrationResult').html(`
-          <div class="alert alert-danger">
-            Error en servidor.
+          <div class="alert alert-success">
+            ${escapeHtml(data.message || 'Rostro registrado correctamente.')}
           </div>
         `);
-        },
-        complete: function () {
-          $('#registerBtn')
-            .prop('disabled', false)
-            .html('<i class="fas fa-user-plus me-2"></i>Registrar mi rostro');
+
+        $('#registerFaceForm')[0].reset();
+
+        $('#facePreview').html(`
+          <i class="fas fa-check-circle" style="color:#22c55e;"></i>
+          <span>Registro completado</span>
+        `);
+      } else {
+        $('#registrationResult').html(`
+          <div class="alert alert-danger">
+            ${escapeHtml(data.message || 'No se pudo registrar el rostro.')}
+          </div>
+        `);
+      }
+    },
+    error: function (xhr) {
+      console.log("❌ register_face error:", xhr.status, xhr.responseText);
+
+      let message = "Error en servidor.";
+
+      if (xhr.responseJSON && xhr.responseJSON.message) {
+        message = xhr.responseJSON.message;
+      } else if (xhr.responseText) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          message = response.message || response.error || message;
+        } catch (e) {
+          message = "Error en servidor.";
         }
-      });
-    });
+      }
+
+      $('#registrationResult').html(`
+        <div class="alert alert-danger">
+          ${escapeHtml(message)}
+        </div>
+      `);
+    },
+    complete: function () {
+      $('#registerBtn')
+        .prop('disabled', false)
+        .html('<i class="fas fa-user-plus me-2"></i>Registrar rostro autorizado');
+    }
+  });
+});
 
     let lastLogId = 0;
 

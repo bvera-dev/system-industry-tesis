@@ -1,4 +1,4 @@
-from datetime import datetime
+import re
 import uuid
 
 from django.core.cache import cache
@@ -9,7 +9,7 @@ from django.utils import timezone
 from core_apps.camera.models import SecurityEvent
 from core_apps.informes.models import Informe
 
-# OpenCV como import seguro
+
 try:
     import cv2  # type: ignore
 except Exception:
@@ -17,13 +17,6 @@ except Exception:
 
 
 def build_event_image_path(event_type):
-    """
-    Construye una ruta organizada para guardar evidencias.
-
-    Ejemplo:
-    security_events/2026/05/25/dangerous_object_20260525_224510_a1b2c3d4.jpg
-    """
-
     now = timezone.localtime()
     unique_id = uuid.uuid4().hex[:8]
 
@@ -39,16 +32,6 @@ def build_event_image_path(event_type):
 
 
 def save_event_image(frame, event_type, jpeg_quality=85):
-    """
-    Guarda la imagen del evento y devuelve la ruta relativa.
-
-    En local guarda en:
-    media/security_events/año/mes/día/imagen.jpg
-
-    En base de datos guarda solo:
-    security_events/año/mes/día/imagen.jpg
-    """
-
     try:
         if cv2 is None:
             print("[ERROR] OpenCV no está instalado.")
@@ -71,7 +54,6 @@ def save_event_image(frame, event_type, jpeg_quality=85):
             return None
 
         image_file = ContentFile(buffer.tobytes())
-
         saved_path = default_storage.save(image_path, image_file)
 
         return saved_path
@@ -81,15 +63,38 @@ def save_event_image(frame, event_type, jpeg_quality=85):
         return None
 
 
+def build_authorized_face_image_path(correo):
+    now = timezone.localtime()
+    unique_id = uuid.uuid4().hex[:8]
+
+    safe_email = re.sub(r'[^a-zA-Z0-9_-]', '_', correo.split("@")[0])
+
+    filename = f"{safe_email}_{now.strftime('%Y%m%d_%H%M%S')}_{unique_id}.jpg"
+
+    return (
+        f"authorized_faces/"
+        f"{now.year}/"
+        f"{now.month:02d}/"
+        f"{filename}"
+    )
+
+
+def save_authorized_face_image(image_file, correo):
+    try:
+        if image_file is None:
+            return None
+
+        image_path = build_authorized_face_image_path(correo)
+        saved_path = default_storage.save(image_path, image_file)
+
+        return saved_path
+
+    except Exception as e:
+        print(f"[ERROR] Error al guardar imagen facial autorizada: {e}")
+        return None
+
+
 def can_save_event(event_key, seconds=20):
-    """
-    Evita guardar muchas evidencias repetidas del mismo evento.
-
-    Ejemplo:
-    Si detecta un objeto peligroso durante varios segundos,
-    solo guardará una evidencia cada 20 segundos.
-    """
-
     if cache.get(event_key):
         return False
 
@@ -102,41 +107,45 @@ def create_security_event(
     details,
     frame=None,
     user=None,
-    camara="Cámara 1",
+    camara=None,
+    camera=None,
+    authorized_person=None,
     epp_correcto=None
 ):
-    """
-    Crea un evento de seguridad, guarda su evidencia y crea su informe.
-    """
-
     try:
-        # 1. Guardar imagen si existe frame
         image_path = None
 
         if frame is not None:
             image_path = save_event_image(frame, event_type)
 
-        # 2. Crear evento de seguridad
+        if camera is not None:
+            camera_name = camera.nombre
+        elif camara:
+            camera_name = camara
+        else:
+            camera_name = "Cámara no especificada"
+
         event = SecurityEvent.objects.create(
             event_type=event_type,
             details=details,
             image_path=image_path,
-            related_user=user
+            related_user=user,
+            authorized_person=authorized_person,
+            camera=camera
         )
 
-        # 3. Nombre de persona
-        if user:
+        if authorized_person is not None:
+            persona = authorized_person.get_full_name()
+        elif user:
             persona = user.get_full_name().strip() or user.username
         else:
             persona = "Desconocido"
 
-        # 4. Determinar EPP correcto
         if epp_correcto is None:
             epp_correcto = False
 
-        # 5. Crear informe
         Informe.objects.create(
-            camara=camara,
+            camara=camera_name,
             persona_detectada=persona,
             epp_correcto=epp_correcto,
             descripcion=f"{event.get_event_type_display()}: {details}"

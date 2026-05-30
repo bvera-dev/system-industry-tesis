@@ -7,6 +7,8 @@ urlpatterns = [
     path("alerta/", AlertaView.as_view(), name="alerta"),
 
     path("video_feed/", views.video_feed, name="video_feed"),
+    path("video_feed/<int:camera_id>/", views.video_feed, name="video_feed_camera"),
+    
     path("live_status/", views.live_status, name="live_status"),
 
     path("register_face/", views.register_face, name="register_face"),

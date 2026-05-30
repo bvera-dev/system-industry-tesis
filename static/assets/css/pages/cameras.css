@@ -534,3 +534,38 @@
   }
 
 }
+
+.camera-select {
+  border: 1px solid rgba(19, 60, 85, 0.18);
+  background: #ffffff;
+  color: #133C55;
+  border-radius: 12px;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.875rem;
+  outline: none;
+  min-width: 180px;
+}
+
+.camera-select:focus {
+  border-color: #386FA4;
+  box-shadow: 0 0 0 3px rgba(56, 111, 164, 0.15);
+}
+
+.no-camera-box {
+  width: 100%;
+  min-height: 360px;
+  border-radius: 18px;
+  background: rgba(19, 60, 85, 0.08);
+  color: #133C55;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  flex-direction: column;
+  font-weight: 600;
+}
+
+.no-camera-box i {
+  font-size: 2rem;
+  opacity: 0.7;
+}

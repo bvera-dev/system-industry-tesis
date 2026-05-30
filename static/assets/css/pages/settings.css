@@ -30,6 +30,52 @@
   color: var(--settings-text);
 }
 
+.settings-page.theme-verde {
+  --settings-primary: #2d936c;
+  --settings-primary-dark: #15543d;
+  --settings-primary-light: rgba(45, 147, 108, 0.12);
+}
+
+.settings-page.theme-azul {
+  --settings-primary: #386FA4;
+  --settings-primary-dark: #133C55;
+  --settings-primary-light: rgba(89, 165, 216, 0.18);
+}
+
+.settings-page.theme-morado {
+  --settings-primary: #7c3aed;
+  --settings-primary-dark: #4c1d95;
+  --settings-primary-light: rgba(124, 58, 237, 0.12);
+}
+
+.settings-page.theme-rojo {
+  --settings-primary: #d64545;
+  --settings-primary-dark: #7f1d1d;
+  --settings-primary-light: rgba(214, 69, 69, 0.12);
+}
+
+.settings-page.is-dark-mode {
+  --settings-bg: #0f172a;
+  --settings-panel: #111827;
+  --settings-card-bg: #172033;
+  --settings-text: #eef2ff;
+  --settings-muted: #a9b4c7;
+  --settings-border: rgba(255, 255, 255, 0.12);
+  --settings-icon-bg: rgba(255, 255, 255, 0.08);
+  --settings-switch-off: rgba(255, 255, 255, 0.25);
+  --settings-card-shadow: none;
+}
+
+.settings-page.is-compact-layout {
+  padding: 20px;
+}
+
+.settings-page.is-compact-layout .settings-card {
+  min-height: 62px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+
 .settings-topbar {
   display: flex;
   justify-content: space-between;
@@ -265,6 +311,11 @@
   color: var(--settings-text);
 }
 
+.settings-input[readonly] {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
 .settings-input::placeholder {
   color: var(--settings-muted);
 }
@@ -310,11 +361,11 @@
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-.switch input:checked + span {
+.switch input:checked+span {
   background: var(--settings-primary);
 }
 
-.switch input:checked + span::before {
+.switch input:checked+span::before {
   transform: translateX(22px);
 }
 
@@ -399,4 +450,49 @@
     grid-column: 2 / 3;
     justify-self: start;
   }
+}
+
+.settings-admin-btn {
+  border: none;
+  text-decoration: none;
+  background: #386FA4;
+  color: #ffffff;
+  padding: 0.65rem 1rem;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.settings-admin-btn:hover {
+  background: #133C55;
+  color: #ffffff;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.settings-save-btn:disabled {
+  opacity: 0.72;
+  cursor: wait;
+  transform: none;
+}
+
+.settings-feedback {
+  min-height: 22px;
+  margin-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-feedback.success {
+  color: #2d936c;
+}
+
+.settings-feedback.error {
+  color: #d64545;
+}
+
+.settings-feedback.info {
+  color: var(--settings-muted);
 }
